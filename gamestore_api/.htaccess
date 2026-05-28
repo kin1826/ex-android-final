@@ -1,0 +1,4 @@
+Options -Indexes
+RewriteEngine On
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule .* - [R=200,L]
