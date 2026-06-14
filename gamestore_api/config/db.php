@@ -1,7 +1,7 @@
 <?php
 define('DB_HOST', '127.0.0.1');
 define('DB_USER', 'root');
-define('DB_PASS', '1234');           // XAMPP mặc định không có password
+define('DB_PASS', '12345678');           // Mật khẩu trống cho Homebrew MySQL
 define('DB_NAME', 'gamestore_db');
 
 function getDB() {

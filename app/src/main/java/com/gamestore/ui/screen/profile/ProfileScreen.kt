@@ -34,6 +34,11 @@ fun ProfileScreen(
     val isLoggedIn  by vm.isLoggedIn.collectAsStateWithLifecycle()
     val currentUser by vm.currentUser.collectAsStateWithLifecycle()
 
+    // Mỗi khi màn hình này hiện lên (ví dụ sau khi popBackStack từ Login), ta sẽ refresh dữ liệu
+    LaunchedEffect(Unit) {
+        vm.refresh()
+    }
+
     Scaffold(
         containerColor = DarkBg,
         topBar = {
