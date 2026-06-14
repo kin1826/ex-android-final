@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -17,8 +19,16 @@ android {
         versionCode   = 1
         versionName   = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "API_BASE_URL",
-            "\"http://10.0.2.2/gamestore_api/api/\"")
+
+        // Tự động lấy URL từ local.properties để mỗi người xài mỗi cấu hình khác nhau
+        val props = Properties()
+        val localPropertiesFile = project.rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.inputStream().use { props.load(it) }
+        }
+        val baseUrl = props.getProperty("api.url") ?: "http://10.0.2.2:8080/api/"
+
+        buildConfigField("String", "API_BASE_URL", "\"$baseUrl\"")
     }
 
     buildTypes {
