@@ -30,6 +30,7 @@ fun ProfileScreen(
     onLoginClick: () -> Unit,
     onOrderHistoryClick: () -> Unit,
     onDepositClick: () -> Unit,
+    onAdminClick: () -> Unit,
     vm: AuthViewModel = hiltViewModel(),
 ) {
     val isLoggedIn  by vm.isLoggedIn.collectAsStateWithLifecycle()
@@ -149,7 +150,7 @@ fun ProfileScreen(
                         fontWeight = FontWeight.Bold,
                         modifier   = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
-                    MenuRow(Icons.Default.AdminPanelSettings, "Bảng điều khiển Admin", { /* Sau này điều hướng tới màn Admin */ }, color = PurpleLt)
+                    MenuRow(Icons.Default.AdminPanelSettings, "Bảng điều khiển Admin", onAdminClick, color = PurpleLt)
                 }
 
                 Spacer(Modifier.height(8.dp))

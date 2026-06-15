@@ -1,5 +1,9 @@
 package com.gamestore.model
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
 data class Game(
     val id: Int = 0,
     val title: String = "",
@@ -28,7 +32,7 @@ data class Game(
     val isNew: Boolean = false,
     val isOwned: Boolean = false,
     val stock: Int = 999,
-) {
+) : Parcelable {
     val finalPrice: Double
         get() = if (discountPercent > 0) price * (1 - discountPercent / 100.0) else price
     val hasDiscount: Boolean get() = discountPercent > 0

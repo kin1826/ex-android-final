@@ -30,6 +30,10 @@ object R {
     const val PROFILE = "profile"
     const val AUTH    = "auth"
     const val DEPOSIT = "deposit"
+    const val ADMIN_GAMES = "admin_games"
+    const val ADMIN_EDIT_GAME = "admin_edit_game"
+    const val ADMIN_CATEGORIES = "admin_categories"
+    const val ADMIN_DASHBOARD = "admin_dashboard"
     fun detail(id: Int)   = "detail/$id"
     fun success(id: Int)  = "success/$id"
 }
@@ -47,7 +51,7 @@ fun AppNavigation() {
         Triple(R.ORDERS,  "Đơn hàng",  Icons.Default.Receipt),
         Triple(R.PROFILE, "Tài khoản", Icons.Default.Person),
     )
-    val noBar = setOf("detail/", "success/", R.AUTH, R.DEPOSIT)
+    val noBar = setOf("detail/", "success/", R.AUTH, R.DEPOSIT, R.ADMIN_GAMES, R.ADMIN_DASHBOARD, R.ADMIN_CATEGORIES, R.ADMIN_EDIT_GAME)
     val showBar = noBar.none { route?.startsWith(it.trimEnd('/')) == true }
 
     Scaffold(
@@ -95,12 +99,43 @@ fun AppNavigation() {
                 ProfileScreen(
                     onLoginClick = { nav.navigate(R.AUTH) }, 
                     onOrderHistoryClick = { nav.navigate(R.ORDERS) },
-                    onDepositClick = { nav.navigate(R.DEPOSIT) }
+                    onDepositClick = { nav.navigate(R.DEPOSIT) },
+                    onAdminClick = { nav.navigate(R.ADMIN_DASHBOARD) }
                 ) 
             }
             composable(R.AUTH)    { AuthScreen(onSuccess = { nav.popBackStack() }) }
             composable(R.DEPOSIT) { 
                 com.gamestore.ui.screen.profile.DepositScreen(onBack = { nav.popBackStack() }) 
+            }
+            composable(R.ADMIN_DASHBOARD) {
+                com.gamestore.ui.screen.admin.AdminDashboardScreen(
+                    onBack = { nav.popBackStack() },
+                    onManageGames = { nav.navigate(R.ADMIN_GAMES) },
+                    onManageCategories = { nav.navigate(R.ADMIN_CATEGORIES) }
+                )
+            }
+            composable(R.ADMIN_CATEGORIES) {
+                com.gamestore.ui.screen.admin.AdminCategoryScreen(onBack = { nav.popBackStack() })
+            }
+            composable(R.ADMIN_GAMES) {
+                com.gamestore.ui.screen.admin.AdminGameListScreen(
+                    onBack = { nav.popBackStack() },
+                    onEditGame = { game ->
+                        nav.currentBackStackEntry?.savedStateHandle?.set("game", game)
+                        nav.navigate(R.ADMIN_EDIT_GAME)
+                    },
+                    onAddGame = {
+                        nav.currentBackStackEntry?.savedStateHandle?.set("game", null)
+                        nav.navigate(R.ADMIN_EDIT_GAME)
+                    }
+                )
+            }
+            composable(R.ADMIN_EDIT_GAME) {
+                val game = nav.previousBackStackEntry?.savedStateHandle?.get<com.gamestore.model.Game>("game")
+                com.gamestore.ui.screen.admin.AdminGameEditScreen(
+                    game = game,
+                    onBack = { nav.popBackStack() }
+                )
             }
         }
     }
