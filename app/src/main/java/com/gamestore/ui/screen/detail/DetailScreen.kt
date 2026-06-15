@@ -573,59 +573,67 @@ fun BottomPurchaseBar(
             verticalAlignment     = Alignment.CenterVertically,
         ) {
             // Giá
-            Column {
-                if (game.hasDiscount) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Surface(
-                            color = Color(0xFF4ADE80).copy(0.15f),
-                            shape = RoundedCornerShape(4.dp),
+            Column(modifier = Modifier.weight(1f)) {
+                if (!game.isOwned) {
+                    if (game.hasDiscount) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            Text(
-                                "-${game.discountPercent}%",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF4ADE80),
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            )
+                            Surface(color = Color(0xFF4ADE80).copy(0.15f), shape = RoundedCornerShape(4.dp)) {
+                                Text("-${game.discountPercent}%", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4ADE80), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            }
+                            Text(game.originalPrice.toVND(), fontSize = 12.sp, color = TextMuted, textDecoration = TextDecoration.LineThrough)
                         }
-                        Text(
-                            game.originalPrice.toVND(),
-                            fontSize = 12.sp,
-                            color = TextMuted,
-                            textDecoration = TextDecoration.LineThrough,
-                        )
                     }
-                    Text(
-                        "Tiết kiệm ${(game.originalPrice - game.finalPrice).toVND()}",
-                        fontSize = 10.sp,
-                        color = Color(0xFF4ADE80),
-                    )
+                    Text(game.finalPrice.toVND(), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = PurpleLt)
+                } else {
+                    Text("GAME ĐÃ MUA", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GreenColor, letterSpacing = 1.sp)
+                    Text("Trong thư viện", fontSize = 14.sp, color = TextMuted)
                 }
-                Text(
-                    game.finalPrice.toVND(),
-                    fontSize   = 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color      = PurpleLt,
-                )
             }
 
-            // Nút mua
-            Button(
-                onClick  = onBuy,
-                modifier = Modifier.height(50.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = Purple),
-                shape    = RoundedCornerShape(12.dp),
-            ) {
-                Icon(Icons.Default.AddShoppingCart, null, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    "Thêm vào giỏ",
-                    fontWeight = FontWeight.Bold,
-                    fontSize   = 15.sp,
-                )
+            // Xử lý nút Tải / Chơi / Mua
+            var downloadProgress by remember { mutableStateOf(0f) }
+            var isDownloading by remember { mutableStateOf(false) }
+            var isInstalled by remember { mutableStateOf(false) }
+
+            LaunchedEffect(isDownloading) {
+                if (isDownloading) {
+                    while (downloadProgress < 1f) {
+                        delay(50)
+                        downloadProgress += 0.02f
+                    }
+                    isDownloading = false
+                    isInstalled = true
+                }
+            }
+
+            if (game.isOwned) {
+                if (isInstalled) {
+                    Button(onClick = { /* Mở game */ }, colors = ButtonDefaults.buttonColors(containerColor = GreenColor), shape = RoundedCornerShape(12.dp), modifier = Modifier.height(50.dp)) {
+                        Icon(Icons.Default.PlayArrow, null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Chơi ngay", fontWeight = FontWeight.Bold)
+                    }
+                } else if (isDownloading) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(140.dp)) {
+                        LinearProgressIndicator(progress = { downloadProgress }, color = PurpleLt, trackColor = DarkBorder, modifier = Modifier.fillMaxWidth().clip(CircleShape))
+                        Text("${(downloadProgress * 100).toInt()}%", color = TextMuted, fontSize = 11.sp)
+                    }
+                } else {
+                    Button(onClick = { isDownloading = true }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)), shape = RoundedCornerShape(12.dp), modifier = Modifier.height(50.dp)) {
+                        Icon(Icons.Default.Download, null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Tải về", fontWeight = FontWeight.Bold)
+                    }
+                }
+            } else {
+                Button(onClick = onBuy, modifier = Modifier.height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = Purple), shape = RoundedCornerShape(12.dp)) {
+                    Icon(Icons.Default.AddShoppingCart, null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Thêm vào giỏ", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                }
             }
         }
     }
