@@ -4,6 +4,7 @@ build/
 
 # Local configuration
 local.properties
+gamestore_api/config/db.local.php
 
 # Android Studio
 .idea/

@@ -7,6 +7,15 @@
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
 -- Phiên bản PHP: 8.2.12
 
+-- --------------------------------------------------
+-- Phần test
+
+SELECT * FROM users;
+SELECT * FROM categories;
+
+-- --------------------------------------------------
+-- Phần chính
+
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
@@ -283,3 +292,5 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+ALTER TABLE users ADD COLUMN is_admin TINYINT(1) DEFAULT 0 AFTER membership_level;

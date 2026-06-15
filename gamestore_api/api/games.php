@@ -7,24 +7,56 @@ $uri    = $_SERVER['REQUEST_URI'];
 
 // Lấy path cuối: /api/games/featured → "featured"
 $parts  = explode('/', trim(parse_url($uri, PHP_URL_PATH), '/'));
-$action = end($parts);   // featured | hot-deals | new-releases | search | categories | {id}
+$lastPart = end($parts);
+
+// Ưu tiên lấy action từ Query String, nếu không có mới lấy từ Path
+$action = $_GET['action'] ?? $lastPart;
+$idFromQuery = $_GET['id'] ?? 0;
+
+// ── GET /api/games/{id} ──────────────────────────────────────
+if ($method === 'GET' && ($idFromQuery > 0 || is_numeric($action))) {
+    $id  = $idFromQuery > 0 ? (int)$idFromQuery : (int)$action;
+    $userId = (int)($_GET['userId'] ?? 0);
+
+    $res = $db->query("SELECT * FROM games WHERE id = $id LIMIT 1");
+    $row = $res->fetch_assoc();
+    if (!$row) sendJSON(['success' => false, 'message' => 'Không tìm thấy game'], 404);
+
+    // Kiểm tra xem user đã mua game này chưa
+    $isOwned = false;
+    if ($userId > 0) {
+        $checkOwned = $db->query("
+            SELECT oi.id
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.id
+            WHERE o.user_id = $userId AND oi.game_id = $id AND o.status = 'COMPLETED'
+            LIMIT 1
+        ");
+        $isOwned = ($checkOwned && $checkOwned->num_rows > 0);
+    }
+
+    $gameData = formatGame($row);
+    $gameData['isOwned'] = $isOwned;
+
+    sendJSON(['success' => true, 'data' => $gameData]);
+}
 
 // ── GET /api/games/featured ──────────────────────────────────
 if ($method === 'GET' && $action === 'featured') {
     $res = $db->query("SELECT * FROM games WHERE is_featured = 1 ORDER BY rating DESC");
-    sendJSON(['success' => true, 'data' => fetchAll($res)]);
+    sendJSON(['success' => true, 'data' => ['items' => fetchAll($res)]]);
 }
 
 // ── GET /api/games/hot-deals ─────────────────────────────────
 if ($method === 'GET' && $action === 'hot-deals') {
     $res = $db->query("SELECT * FROM games WHERE is_hot = 1 ORDER BY discount_percent DESC");
-    sendJSON(['success' => true, 'data' => fetchAll($res)]);
+    sendJSON(['success' => true, 'data' => ['items' => fetchAll($res)]]);
 }
 
 // ── GET /api/games/new-releases ──────────────────────────────
 if ($method === 'GET' && $action === 'new-releases') {
     $res = $db->query("SELECT * FROM games WHERE is_new = 1 ORDER BY created_at DESC");
-    sendJSON(['success' => true, 'data' => fetchAll($res)]);
+    sendJSON(['success' => true, 'data' => ['items' => fetchAll($res)]]);
 }
 
 // ── GET /api/games/categories ────────────────────────────────
@@ -43,16 +75,7 @@ if ($method === 'GET' && $action === 'categories') {
 if ($method === 'GET' && $action === 'search') {
     $q   = '%' . ($db->real_escape_string($_GET['q'] ?? '')) . '%';
     $res = $db->query("SELECT * FROM games WHERE title LIKE '$q' OR genre LIKE '$q' ORDER BY rating DESC");
-    sendJSON(['success' => true, 'data' => fetchAll($res)]);
-}
-
-// ── GET /api/games/{id} ──────────────────────────────────────
-if ($method === 'GET' && is_numeric($action)) {
-    $id  = (int)$action;
-    $res = $db->query("SELECT * FROM games WHERE id = $id LIMIT 1");
-    $row = $res->fetch_assoc();
-    if (!$row) sendJSON(['success' => false, 'message' => 'Không tìm thấy game'], 404);
-    sendJSON(['success' => true, 'data' => formatGame($row)]);
+    sendJSON(['success' => true, 'data' => ['items' => fetchAll($res)]]);
 }
 
 // ── GET /api/games (danh sách có lọc) ────────────────────────
@@ -81,7 +104,9 @@ if ($method === 'GET') {
 // ── HELPERS ──────────────────────────────────────────────────
 function fetchAll($result) {
     $rows = [];
-    while ($row = $result->fetch_assoc()) $rows[] = formatGame($row);
+    if ($result) {
+        while ($row = $result->fetch_assoc()) $rows[] = formatGame($row);
+    }
     return $rows;
 }
 
@@ -102,6 +127,7 @@ function formatGame($row) {
         'isFeatured'      => (bool)$row['is_featured'],
         'isHot'           => (bool)$row['is_hot'],
         'isNew'           => (bool)$row['is_new'],
+        'isOwned'         => (bool)($row['isOwned'] ?? false),
         'stock'           => (int)$row['stock'],
     ];
 }

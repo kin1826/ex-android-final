@@ -45,8 +45,26 @@ if ($method === 'POST') {
         $orderItems[] = ['game' => $game, 'price' => $finalPrice, 'quantity' => $quantity];
     }
 
+    // --- LOGIC TRỪ TIỀN VÍ ---
+    if ($paymentMethod === 'WALLET') {
+        // Kiểm tra tên cột
+        $col = 'wallet_balance';
+        $c = $db->query("SHOW COLUMNS FROM users LIKE 'wallet_balence'");
+        if ($c->num_rows > 0) $col = 'wallet_balence';
+
+        $resUser = $db->query("SELECT $col FROM users WHERE id = $userId");
+        $user = $resUser->fetch_assoc();
+
+        if (!$user || $user[$col] < $subtotal) {
+            sendJSON(['success' => false, 'message' => 'Số dư ví không đủ. Vui lòng nạp thêm tiền.'], 400);
+        }
+
+        // Trừ tiền
+        $db->query("UPDATE users SET $col = $col - $subtotal WHERE id = $userId");
+    }
+
     // Tạo đơn hàng
-    $stmt = $db->prepare("INSERT INTO orders (user_id,subtotal,discount,total,status,payment_method,note) VALUES (?,?,0,?,'PENDING',?,?)");
+    $stmt = $db->prepare("INSERT INTO orders (user_id,subtotal,discount,total,status,payment_method,note) VALUES (?,?,0,?,'COMPLETED',?,?)");
     $stmt->bind_param('iddss', $userId, $subtotal, $subtotal, $paymentMethod, $note);
     $stmt->execute();
     $orderId = $db->insert_id;
@@ -74,7 +92,7 @@ if ($method === 'POST') {
         'subtotal'      => $subtotal,
         'discount'      => 0,
         'total'         => $subtotal,
-        'status'        => 'PENDING',
+        'status'        => 'COMPLETED',
         'paymentMethod' => $paymentMethod,
         'paymentStatus' => 'PAID',
         'note'          => $note,

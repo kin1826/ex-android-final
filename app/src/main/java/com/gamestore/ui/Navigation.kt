@@ -29,6 +29,7 @@ object R {
     const val ORDERS  = "orders"
     const val PROFILE = "profile"
     const val AUTH    = "auth"
+    const val DEPOSIT = "deposit"
     fun detail(id: Int)   = "detail/$id"
     fun success(id: Int)  = "success/$id"
 }
@@ -46,7 +47,7 @@ fun AppNavigation() {
         Triple(R.ORDERS,  "Đơn hàng",  Icons.Default.Receipt),
         Triple(R.PROFILE, "Tài khoản", Icons.Default.Person),
     )
-    val noBar = setOf("detail/", "success/", R.AUTH)
+    val noBar = setOf("detail/", "success/", R.AUTH, R.DEPOSIT)
     val showBar = noBar.none { route?.startsWith(it.trimEnd('/')) == true }
 
     Scaffold(
@@ -79,7 +80,7 @@ fun AppNavigation() {
             composable(R.HOME) {
                 HomeScreen(onGameClick = { nav.navigate(R.detail(it)) }, onCartClick = { nav.navigate(R.CART) })
             }
-            composable(R.DETAIL, listOf(navArgument("gameId") { type = NavType.IntType })) {
+            composable(R.DETAIL, listOf(navArgument("gameId") { type = NavType.IntType })) { backStackEntry ->
                 DetailScreen(onBack = { nav.popBackStack() }, onCartClick = { nav.navigate(R.CART) })
             }
             composable(R.CART) {
@@ -90,8 +91,17 @@ fun AppNavigation() {
                 OrderSuccessScreen(id, onGoHome = { nav.navigate(R.HOME) { popUpTo(0) { inclusive = true } } }, onViewOrders = { nav.navigate(R.ORDERS) { popUpTo(R.HOME) } })
             }
             composable(R.ORDERS)  { OrderHistoryScreen(onBack = { nav.popBackStack() }) }
-            composable(R.PROFILE) { ProfileScreen(onLoginClick = { nav.navigate(R.AUTH) }, onOrderHistoryClick = { nav.navigate(R.ORDERS) }) }
+            composable(R.PROFILE) { 
+                ProfileScreen(
+                    onLoginClick = { nav.navigate(R.AUTH) }, 
+                    onOrderHistoryClick = { nav.navigate(R.ORDERS) },
+                    onDepositClick = { nav.navigate(R.DEPOSIT) }
+                ) 
+            }
             composable(R.AUTH)    { AuthScreen(onSuccess = { nav.popBackStack() }) }
+            composable(R.DEPOSIT) { 
+                com.gamestore.ui.screen.profile.DepositScreen(onBack = { nav.popBackStack() }) 
+            }
         }
     }
 }

@@ -26,6 +26,7 @@ data class Game(
     val isFeatured: Boolean = false,
     val isHot: Boolean = false,
     val isNew: Boolean = false,
+    val isOwned: Boolean = false,
     val stock: Int = 999,
 ) {
     val finalPrice: Double
@@ -74,6 +75,7 @@ data class User(
     val walletBalance: Double = 0.0,
     val points: Int = 0,
     val membershipLevel: String = "BRONZE",
+    val isAdmin: Boolean = false,
 )
 
 data class Order(

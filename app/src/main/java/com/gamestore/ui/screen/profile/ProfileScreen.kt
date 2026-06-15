@@ -29,10 +29,16 @@ import com.gamestore.viewmodel.AuthViewModel
 fun ProfileScreen(
     onLoginClick: () -> Unit,
     onOrderHistoryClick: () -> Unit,
+    onDepositClick: () -> Unit,
     vm: AuthViewModel = hiltViewModel(),
 ) {
     val isLoggedIn  by vm.isLoggedIn.collectAsStateWithLifecycle()
     val currentUser by vm.currentUser.collectAsStateWithLifecycle()
+
+    // Mỗi khi màn hình này hiện lên (ví dụ sau khi popBackStack từ Login), ta sẽ refresh dữ liệu
+    LaunchedEffect(Unit) {
+        vm.refresh()
+    }
 
     Scaffold(
         containerColor = DarkBg,
@@ -50,7 +56,7 @@ fun ProfileScreen(
                 .verticalScroll(rememberScrollState()),
         ) {
             if (!isLoggedIn || currentUser == null) {
-                // Chưa đăng nhập
+                // Chưa đăng nhập (giữ nguyên)
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -71,7 +77,7 @@ fun ProfileScreen(
             } else {
                 val user = currentUser!!
 
-                // Avatar + info
+                // Avatar + info (giữ nguyên)
                 Column(
                     modifier            = Modifier.fillMaxWidth().padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -110,12 +116,12 @@ fun ProfileScreen(
                     }
                 }
 
-                // Stats
+                // Stats - BIẾN CARD SỐ DƯ THÀNH NÚT BẤM
                 Row(
                     modifier              = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    StatCard("💰 Số dư ví", user.walletBalance.toVND(), Modifier.weight(1f))
+                    StatCard("💰 Số dư ví", user.walletBalance.toVND(), Modifier.weight(1f), onClick = onDepositClick)
                     StatCard("⭐ Điểm", "${user.points} điểm", Modifier.weight(1f))
                 }
 
@@ -131,6 +137,20 @@ fun ProfileScreen(
                 MenuRow(Icons.Default.Receipt,     "Lịch sử đơn hàng",  onOrderHistoryClick)
                 MenuRow(Icons.Default.Favorite,    "Yêu thích",          {})
                 MenuRow(Icons.Default.Games,       "Game đã mua",        {})
+                // THÊM NÚT NẠP TIỀN Ở ĐÂY
+                MenuRow(Icons.Default.AddCard,     "Nạp tiền vào ví",    onDepositClick)
+
+                if (user.isAdmin) {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "Quản trị viên",
+                        color      = PurpleLt,
+                        fontSize   = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier   = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                    MenuRow(Icons.Default.AdminPanelSettings, "Bảng điều khiển Admin", { /* Sau này điều hướng tới màn Admin */ }, color = PurpleLt)
+                }
 
                 Spacer(Modifier.height(8.dp))
                 HorizontalDivider(color = DarkBorder, modifier = Modifier.padding(horizontal = 16.dp))
@@ -148,10 +168,13 @@ fun ProfileScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
+fun StatCard(label: String, value: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
     Card(
         modifier = modifier,
+        onClick  = { onClick?.invoke() },
+        enabled  = onClick != null,
         shape    = RoundedCornerShape(12.dp),
         colors   = CardDefaults.cardColors(containerColor = DarkCard),
         border   = BorderStroke(0.5.dp, DarkBorder),

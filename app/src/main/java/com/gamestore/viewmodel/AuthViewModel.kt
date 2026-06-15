@@ -13,16 +13,40 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authApi: AuthApi,
+    private val userApi: UserApi,
     private val tm: TokenManager,
 ) : ViewModel() {
 
     private val _state       = MutableStateFlow<UiState<User>?>(null)
     private val _isLoggedIn  = MutableStateFlow(tm.isLoggedIn())
-    private val _currentUser = MutableStateFlow<User?>(null)
+    private val _currentUser = MutableStateFlow<User?>(tm.getUser())
 
     val state:       StateFlow<UiState<User>?> = _state.asStateFlow()
     val isLoggedIn:  StateFlow<Boolean>         = _isLoggedIn.asStateFlow()
     val currentUser: StateFlow<User?>           = _currentUser.asStateFlow()
+
+    init {
+        refresh()
+    }
+
+    fun refresh() {
+        _isLoggedIn.value = tm.isLoggedIn()
+        _currentUser.value = tm.getUser()
+        
+        // Cập nhật từ server nếu đã login
+        if (tm.isLoggedIn()) {
+            viewModelScope.launch {
+                try {
+                    val resp = userApi.getProfile(userId = tm.getUserId())
+                    if (resp.isSuccessful && resp.body()?.data != null) {
+                        val user = resp.body()!!.data!!.toModel()
+                        tm.saveUser(user)
+                        _currentUser.value = user
+                    }
+                } catch (e: Exception) {}
+            }
+        }
+    }
 
     fun login(email: String, password: String) = viewModelScope.launch {
         _state.value = UiState.Loading
@@ -30,8 +54,11 @@ class AuthViewModel @Inject constructor(
             val resp = authApi.login(body = LoginRequest(email, password))
             if (resp.isSuccessful && resp.body()?.data != null) {
                 val data = resp.body()!!.data!!
-                tm.save(data.accessToken, data.userId)
                 val user = data.user.toModel()
+                
+                tm.save(data.accessToken, data.userId)
+                tm.saveUser(user)
+                
                 _currentUser.value = user
                 _isLoggedIn.value  = true
                 _state.value       = UiState.Success(user)
@@ -52,8 +79,11 @@ class AuthViewModel @Inject constructor(
             )
             if (resp.isSuccessful && resp.body()?.data != null) {
                 val data = resp.body()!!.data!!
-                tm.save(data.accessToken, data.userId)
                 val user = data.user.toModel()
+
+                tm.save(data.accessToken, data.userId)
+                tm.saveUser(user)
+
                 _currentUser.value = user
                 _isLoggedIn.value  = true
                 _state.value       = UiState.Success(user)

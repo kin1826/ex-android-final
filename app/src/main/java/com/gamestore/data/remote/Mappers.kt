@@ -16,6 +16,7 @@ fun GameDto.toModel() = Game(
     thumbnailUrl = thumbnailUrl, bannerUrl = bannerUrl,
     screenshotUrls = screenshotUrls, videoUrl = videoUrl,
     isFeatured = isFeatured, isHot = isHot, isNew = isNew, stock = stock,
+    isOwned = isOwned,
 )
 
 fun GameDto.toEntity() = GameEntity(
@@ -25,9 +26,10 @@ fun GameDto.toEntity() = GameEntity(
     reviewCount = reviewCount, genre = genre, developer = developer,
     thumbnailUrl = thumbnailUrl,
     isFeatured = if (isFeatured) 1 else 0,
-    isHot = if (isHot) 1 else 0,
-    isNew = if (isNew) 1 else 0,
-    stock = stock,
+    isHot      = if (isHot) 1 else 0,
+    isNew      = if (isNew) 1 else 0,
+    isOwned    = if (isOwned) 1 else 0,
+    stock      = stock,
 )
 
 fun UserDto.toModel() = User(
@@ -35,6 +37,7 @@ fun UserDto.toModel() = User(
     displayName = displayName, phone = phone,
     walletBalance = walletBalance, points = points,
     membershipLevel = membershipLevel,
+    isAdmin = isAdmin,
 )
 
 fun OrderDto.toModel() = Order(
