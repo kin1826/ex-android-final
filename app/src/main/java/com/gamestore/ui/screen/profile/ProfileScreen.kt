@@ -140,6 +140,18 @@ fun ProfileScreen(
                 // THÊM NÚT NẠP TIỀN Ở ĐÂY
                 MenuRow(Icons.Default.AddCard,     "Nạp tiền vào ví",    onDepositClick)
 
+                if (user.isAdmin) {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "Quản trị viên",
+                        color      = PurpleLt,
+                        fontSize   = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier   = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                    MenuRow(Icons.Default.AdminPanelSettings, "Bảng điều khiển Admin", { /* Sau này điều hướng tới màn Admin */ }, color = PurpleLt)
+                }
+
                 Spacer(Modifier.height(8.dp))
                 HorizontalDivider(color = DarkBorder, modifier = Modifier.padding(horizontal = 16.dp))
                 Spacer(Modifier.height(8.dp))

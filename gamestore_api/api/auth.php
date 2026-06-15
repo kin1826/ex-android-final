@@ -96,6 +96,7 @@ function formatUser($u) {
         'walletBalance'   => (float)($u['wallet_balance'] ?? $u['wallet_balence'] ?? 0),
         'points'          => (int)$u['points'],
         'membershipLevel' => $u['membership_level'] ?? 'BRONZE',
+        'isAdmin'         => (bool)($u['is_admin'] ?? 0),
     ];
 }
 ?>
