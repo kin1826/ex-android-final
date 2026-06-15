@@ -2,6 +2,7 @@ package com.gamestore.ui.screen.detail
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -9,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -95,10 +97,47 @@ fun DetailScreen(
                                     }
                                     Text(game.finalPrice.toVND(), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PurpleLt)
                                 }
-                                Button(onClick = { vm.addToCart() }, colors = ButtonDefaults.buttonColors(containerColor = Purple), shape = RoundedCornerShape(12.dp), modifier = Modifier.height(50.dp)) {
-                                    Icon(Icons.Default.AddShoppingCart, null)
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Thêm giỏ", fontWeight = FontWeight.SemiBold)
+
+                                var downloadProgress by remember { mutableStateOf(0f) }
+                                var isDownloading by remember { mutableStateOf(false) }
+                                var isInstalled by remember { mutableStateOf(false) }
+
+                                LaunchedEffect(isDownloading) {
+                                    if (isDownloading) {
+                                        while (downloadProgress < 1f) {
+                                            kotlinx.coroutines.delay(50)
+                                            downloadProgress += 0.02f
+                                        }
+                                        isDownloading = false
+                                        isInstalled = true
+                                    }
+                                }
+
+                                if (game.isOwned) {
+                                    if (isInstalled) {
+                                        Button(onClick = { /* Giả vờ mở game */ }, colors = ButtonDefaults.buttonColors(containerColor = GreenColor), shape = RoundedCornerShape(12.dp), modifier = Modifier.height(50.dp)) {
+                                            Icon(Icons.Default.PlayArrow, null)
+                                            Spacer(Modifier.width(6.dp))
+                                            Text("Chơi ngay", fontWeight = FontWeight.SemiBold)
+                                        }
+                                    } else if (isDownloading) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f).padding(start = 16.dp)) {
+                                            LinearProgressIndicator(progress = { downloadProgress }, color = PurpleLt, trackColor = DarkBorder, modifier = Modifier.fillMaxWidth().clip(CircleShape))
+                                            Text("Đang tải: ${(downloadProgress * 100).toInt()}%", color = TextMuted, fontSize = 11.sp)
+                                        }
+                                    } else {
+                                        Button(onClick = { isDownloading = true }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)), shape = RoundedCornerShape(12.dp), modifier = Modifier.height(50.dp)) {
+                                            Icon(Icons.Default.Download, null)
+                                            Spacer(Modifier.width(6.dp))
+                                            Text("Tải về", fontWeight = FontWeight.SemiBold)
+                                        }
+                                    }
+                                } else {
+                                    Button(onClick = { vm.addToCart() }, colors = ButtonDefaults.buttonColors(containerColor = Purple), shape = RoundedCornerShape(12.dp), modifier = Modifier.height(50.dp)) {
+                                        Icon(Icons.Default.AddShoppingCart, null)
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("Thêm giỏ", fontWeight = FontWeight.SemiBold)
+                                    }
                                 }
                             }
                         }

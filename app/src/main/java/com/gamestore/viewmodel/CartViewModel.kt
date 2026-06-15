@@ -69,8 +69,13 @@ class CartViewModel @Inject constructor(
                     paymentMethod = paymentMethod,
                 ))
                 if (resp.isSuccessful && resp.body()?.data != null) {
+                    val order = resp.body()!!.data!!
+                    // Đánh dấu các game đã mua trong local DB
+                    order.items.forEach { item ->
+                        gameDao.markAsOwned(item.gameId)
+                    }
                     cartDao.clearAll(userId)
-                    _orderResult.value = UiState.Success(resp.body()!!.data!!.toModel())
+                    _orderResult.value = UiState.Success(order.toModel())
                 } else {
                     _orderResult.value = UiState.Error(resp.body()?.message ?: "Đặt hàng thất bại")
                 }

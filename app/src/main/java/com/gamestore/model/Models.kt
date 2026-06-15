@@ -15,6 +15,7 @@ data class Game(
     val isFeatured: Boolean = false,
     val isHot: Boolean = false,
     val isNew: Boolean = false,
+    val isOwned: Boolean = false,
     val stock: Int = 999,
 ) {
     val finalPrice: Double
