@@ -1,25 +1,55 @@
 package com.gamestore.model
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
 data class Game(
     val id: Int = 0,
     val title: String = "",
     val description: String = "",
+    val longDesc: String = "",
     val price: Double = 0.0,
     val originalPrice: Double = 0.0,
     val discountPercent: Int = 0,
     val rating: Float = 0f,
     val reviewCount: Int = 0,
+    val positivePct: Int = 85,
     val genre: String = "",
     val developer: String = "",
+    val publisher: String = "",
+    val releaseDate: String = "",
+    val platforms: String = "",
+    val tags: List<String> = emptyList(),
+    val ageRating: String = "",
+    val downloadSize: String = "",
     val thumbnailUrl: String = "",
+    val bannerUrl: String = "",
+    val screenshotUrls: List<String> = emptyList(),
+    val videoUrl: String = "",
     val isFeatured: Boolean = false,
     val isHot: Boolean = false,
     val isNew: Boolean = false,
+    val isOwned: Boolean = false,
     val stock: Int = 999,
-) {
+) : Parcelable {
     val finalPrice: Double
         get() = if (discountPercent > 0) price * (1 - discountPercent / 100.0) else price
     val hasDiscount: Boolean get() = discountPercent > 0
+
+    // Nhãn đánh giá theo % tích cực (giống Steam)
+    val ratingLabel: String get() = when {
+        positivePct >= 95 -> "Cực kỳ tích cực"
+        positivePct >= 80 -> "Rất tích cực"
+        positivePct >= 70 -> "Tích cực"
+        positivePct >= 40 -> "Hỗn hợp"
+        else              -> "Tiêu cực"
+    }
+    val ratingColor: Long get() = when {
+        positivePct >= 80 -> 0xFF4ADEAC  // xanh lá
+        positivePct >= 40 -> 0xFFFBBF24  // vàng
+        else              -> 0xFFF87171  // đỏ
+    }
 }
 
 data class CartItem(
@@ -49,6 +79,7 @@ data class User(
     val walletBalance: Double = 0.0,
     val points: Int = 0,
     val membershipLevel: String = "BRONZE",
+    val isAdmin: Boolean = false,
 )
 
 data class Order(

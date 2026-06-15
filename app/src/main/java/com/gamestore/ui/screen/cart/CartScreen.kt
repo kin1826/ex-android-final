@@ -23,6 +23,7 @@ import coil.compose.AsyncImage
 import com.gamestore.model.*
 import com.gamestore.ui.theme.*
 import com.gamestore.util.toVND
+import com.gamestore.viewmodel.AuthViewModel
 import com.gamestore.viewmodel.CartViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,18 +32,25 @@ fun CartScreen(
     onBack: () -> Unit,
     onOrderSuccess: (Int) -> Unit,
     vm: CartViewModel = hiltViewModel(),
+    authVm: AuthViewModel = hiltViewModel(),
 ) {
-    val cart        by vm.cart.collectAsStateWithLifecycle()
-    val orderResult by vm.orderResult.collectAsStateWithLifecycle()
-    val message     by vm.message.collectAsStateWithLifecycle()
-    var showDialog  by remember { mutableStateOf(false) }
-    val snackbar    = remember { SnackbarHostState() }
+    val cart         by vm.cart.collectAsStateWithLifecycle()
+    val orderResult  by vm.orderResult.collectAsStateWithLifecycle()
+    val message      by vm.message.collectAsStateWithLifecycle()
+    val currentUser  by authVm.currentUser.collectAsStateWithLifecycle()
+    
+    var showPayDialog by remember { mutableStateOf(false) }
+    var showConfirm   by remember { mutableStateOf(false) }
+    val snackbar      = remember { SnackbarHostState() }
 
     LaunchedEffect(orderResult) {
         if (orderResult is UiState.Success) {
             val order = (orderResult as UiState.Success).data
             vm.clearOrderResult()
             onOrderSuccess(order.id)
+        } else if (orderResult is UiState.Error) {
+            snackbar.showSnackbar((orderResult as UiState.Error).message)
+            vm.clearOrderResult()
         }
     }
     LaunchedEffect(message) { message?.let { snackbar.showSnackbar(it); vm.clearMessage() } }
@@ -82,7 +90,7 @@ fun CartScreen(
                             Text(cart.total.toVND(), fontWeight = FontWeight.Bold, color = PurpleLt, fontSize = 18.sp)
                         }
                         Spacer(Modifier.height(16.dp))
-                        Button(onClick = { showDialog = true }, modifier = Modifier.fillMaxWidth().height(52.dp), enabled = orderResult !is UiState.Loading, colors = ButtonDefaults.buttonColors(containerColor = Purple), shape = RoundedCornerShape(12.dp)) {
+                        Button(onClick = { showPayDialog = true }, modifier = Modifier.fillMaxWidth().height(52.dp), enabled = orderResult !is UiState.Loading, colors = ButtonDefaults.buttonColors(containerColor = Purple), shape = RoundedCornerShape(12.dp)) {
                             if (orderResult is UiState.Loading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                             else { Icon(Icons.Default.Payment, null); Spacer(Modifier.width(8.dp)); Text("Thanh toán", fontWeight = FontWeight.Bold, fontSize = 16.sp) }
                         }
@@ -92,22 +100,83 @@ fun CartScreen(
         }
     }
 
-    if (showDialog) {
+    if (showPayDialog) {
         AlertDialog(
-            onDismissRequest = { showDialog = false },
+            onDismissRequest = { showPayDialog = false },
             containerColor   = DarkSurf,
             title = { Text("Chọn thanh toán", color = TextPri, fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("WALLET" to "💰 Ví GameStore", "MOMO" to "🟣 MoMo", "ZALOPAY" to "🔵 ZaloPay", "BANK_TRANSFER" to "🏦 Chuyển khoản").forEach { (key, label) ->
-                        Card(onClick = { showDialog = false; vm.placeOrder(key) }, shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = DarkCard), border = BorderStroke(0.5.dp, DarkBorder)) {
+                        Card(onClick = { 
+                            showPayDialog = false
+                            if (key == "WALLET") showConfirm = true 
+                            else vm.placeOrder(key) 
+                        }, shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = DarkCard), border = BorderStroke(0.5.dp, DarkBorder)) {
                             Text(label, color = TextPri, fontSize = 15.sp, modifier = Modifier.fillMaxWidth().padding(14.dp))
                         }
                     }
                 }
             },
             confirmButton = {},
-            dismissButton = { TextButton(onClick = { showDialog = false }) { Text("Hủy", color = TextMuted) } },
+            dismissButton = { TextButton(onClick = { showPayDialog = false }) { Text("Hủy", color = TextMuted) } },
+        )
+    }
+
+    if (showConfirm && currentUser != null) {
+        val user = currentUser!!
+        val isEnough = user.walletBalance >= cart.total
+        AlertDialog(
+            onDismissRequest = { showConfirm = false },
+            containerColor = DarkSurf,
+            title = { Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.AccountBalanceWallet, null, tint = PurpleLt)
+                Spacer(Modifier.width(8.dp))
+                Text("Xác nhận thanh toán", color = TextPri, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            }},
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.fillMaxWidth().background(DarkCard, RoundedCornerShape(10.dp)).padding(12.dp)) {
+                        Text("Tài khoản người mua", color = TextMuted, fontSize = 12.sp)
+                        Text(user.displayName, color = TextPri, fontWeight = FontWeight.Bold)
+                        Text(user.email, color = TextMuted, fontSize = 12.sp)
+                    }
+                    
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                            Text("Số dư hiện tại:", color = TextMuted)
+                            Text(user.walletBalance.toVND(), color = TextPri)
+                        }
+                        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                            Text("Tổng tiền mua:", color = TextMuted)
+                            Text("- ${cart.total.toVND()}", color = RedColor, fontWeight = FontWeight.Bold)
+                        }
+                        HorizontalDivider(color = DarkBorder)
+                        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                            Text("Số dư còn lại:", color = TextMuted, fontWeight = FontWeight.Bold)
+                            val remaining = user.walletBalance - cart.total
+                            Text(remaining.toVND(), color = if (remaining >= 0) GreenColor else RedColor, fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+
+                    if (!isEnough) {
+                        Surface(color = RedColor.copy(0.1f), shape = RoundedCornerShape(8.dp)) {
+                            Text("⚠️ Số dư ví không đủ để thanh toán. Vui lòng nạp thêm tiền.", color = RedColor, fontSize = 12.sp, modifier = Modifier.padding(8.dp))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showConfirm = false; vm.placeOrder("WALLET") },
+                    enabled = isEnough,
+                    colors = ButtonDefaults.buttonColors(containerColor = Purple),
+                    shape = RoundedCornerShape(10.dp)
+                ) { Text("Xác nhận mua", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirm = false }) { Text("Hủy", color = TextMuted) }
+            }
         )
     }
 }

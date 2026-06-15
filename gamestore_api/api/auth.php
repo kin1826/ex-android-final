@@ -93,9 +93,10 @@ function formatUser($u) {
         'displayName'     => $u['display_name'] ?? '',
         'phone'           => $u['phone'] ?? '',
         'avatarUrl'       => $u['avatar_url'] ?? '',
-        'walletBalance'   => (float)$u['wallet_balance'],
+        'walletBalance'   => (float)($u['wallet_balance'] ?? $u['wallet_balence'] ?? 0),
         'points'          => (int)$u['points'],
         'membershipLevel' => $u['membership_level'] ?? 'BRONZE',
+        'isAdmin'         => (bool)($u['is_admin'] ?? 0),
     ];
 }
 ?>

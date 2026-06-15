@@ -13,6 +13,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authApi: AuthApi,
+    private val userApi: UserApi,
     private val tm: TokenManager,
 ) : ViewModel() {
 
@@ -31,6 +32,20 @@ class AuthViewModel @Inject constructor(
     fun refresh() {
         _isLoggedIn.value = tm.isLoggedIn()
         _currentUser.value = tm.getUser()
+        
+        // Cập nhật từ server nếu đã login
+        if (tm.isLoggedIn()) {
+            viewModelScope.launch {
+                try {
+                    val resp = userApi.getProfile(userId = tm.getUserId())
+                    if (resp.isSuccessful && resp.body()?.data != null) {
+                        val user = resp.body()!!.data!!.toModel()
+                        tm.saveUser(user)
+                        _currentUser.value = user
+                    }
+                } catch (e: Exception) {}
+            }
+        }
     }
 
     fun login(email: String, password: String) = viewModelScope.launch {

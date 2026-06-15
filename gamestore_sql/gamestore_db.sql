@@ -7,6 +7,15 @@
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
 -- Phiên bản PHP: 8.2.12
 
+-- --------------------------------------------------
+-- Phần test
+
+SELECT * FROM users;
+SELECT * FROM categories;
+
+-- --------------------------------------------------
+-- Phần chính
+
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
@@ -328,3 +337,10 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+ALTER TABLE users ADD COLUMN is_admin TINYINT(1) DEFAULT 0 AFTER membership_level;
+
+ALTER TABLE games ADD COLUMN publisher VARCHAR(255) AFTER developer;
+ALTER TABLE games ADD COLUMN release_date VARCHAR(50) AFTER publisher;
+ALTER TABLE games ADD COLUMN platforms VARCHAR(255) AFTER release_date;
+ALTER TABLE games ADD COLUMN download_size VARCHAR(50) AFTER platforms;

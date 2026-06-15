@@ -20,6 +20,7 @@ data class GameEntity(
     val isFeatured: Int = 0,
     val isHot: Int = 0,
     val isNew: Int = 0,
+    val isOwned: Int = 0,
     val stock: Int = 999,
 )
 
@@ -32,6 +33,7 @@ fun GameEntity.toModel() = Game(
     isFeatured = isFeatured == 1,
     isHot      = isHot == 1,
     isNew      = isNew == 1,
+    isOwned    = isOwned == 1,
     stock      = stock,
 )
 
@@ -72,6 +74,9 @@ interface GameDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(g: GameEntity)
+
+    @Query("UPDATE games SET isOwned = 1 WHERE id = :id")
+    suspend fun markAsOwned(id: Int)
 }
 
 @Dao
@@ -153,8 +158,8 @@ interface LibraryDao {
     suspend fun delete(uid: Int, gid: Int)
 }
 @Database(
-    entities  = [GameEntity::class, CartEntity::class, LibraryEntity::class],
-    version   = 1,
+    entities  = [GameEntity::class, CartEntity::class],
+    version   = 2,
     exportSchema = false
 )
 
