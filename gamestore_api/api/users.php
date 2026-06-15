@@ -68,6 +68,7 @@ if ($method === 'GET' && $action === 'profile') {
         'walletBalance'   => (float)$user[$col],
         'points'          => (int)$user['points'],
         'membershipLevel' => $user['membership_level'] ?? 'BRONZE',
+        'isAdmin'         => (bool)($user['is_admin'] ?? 0),
     ]]);
 }
 ?>

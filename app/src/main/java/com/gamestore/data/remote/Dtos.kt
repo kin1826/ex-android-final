@@ -60,6 +60,7 @@ data class UserDto(
     val walletBalance: Double = 0.0,
     val points: Int = 0,
     val membershipLevel: String = "BRONZE",
+    val isAdmin: Boolean = false,
 )
 
 data class CreateOrderRequest(
