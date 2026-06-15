@@ -4,11 +4,17 @@ import com.gamestore.data.local.GameEntity
 import com.gamestore.model.*
 
 fun GameDto.toModel() = Game(
-    id = id, title = title, description = description,
+    id = id, title = title,
+    description = description,
+    longDesc = longDesc,
     price = price, originalPrice = originalPrice,
-    discountPercent = discountPercent, rating = rating,
-    reviewCount = reviewCount, genre = genre, developer = developer,
-    thumbnailUrl = thumbnailUrl,
+    discountPercent = discountPercent,
+    rating = rating, reviewCount = reviewCount, positivePct = positivePct,
+    genre = genre, developer = developer, publisher = publisher,
+    releaseDate = releaseDate, platforms = platforms, tags = tags,
+    ageRating = ageRating, downloadSize = downloadSize,
+    thumbnailUrl = thumbnailUrl, bannerUrl = bannerUrl,
+    screenshotUrls = screenshotUrls, videoUrl = videoUrl,
     isFeatured = isFeatured, isHot = isHot, isNew = isNew, stock = stock,
 )
 
@@ -19,9 +25,9 @@ fun GameDto.toEntity() = GameEntity(
     reviewCount = reviewCount, genre = genre, developer = developer,
     thumbnailUrl = thumbnailUrl,
     isFeatured = if (isFeatured) 1 else 0,
-    isHot      = if (isHot) 1 else 0,
-    isNew      = if (isNew) 1 else 0,
-    stock      = stock,
+    isHot = if (isHot) 1 else 0,
+    isNew = if (isNew) 1 else 0,
+    stock = stock,
 )
 
 fun UserDto.toModel() = User(
