@@ -170,10 +170,55 @@ CREATE TABLE `wishlists` (
   `added_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+----------------------------------------------------------
+
 --
--- Chỉ mục cho các bảng đã đổ
+-- Cấu trúc bảng cho bảng `Libraries`
 --
 
+CREATE TABLE `libraries` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `user_id` INT(11) NOT NULL,
+    `game_id` INT(11) NOT NULL,
+    `purchase_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `is_favorite` TINYINT(1) DEFAULT 0,
+    `playtime_minutes` INT(11) DEFAULT 0,
+    `last_played_at` DATETIME DEFAULT NULL, PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_user_game` (`user_id`, `game_id`),
+    KEY `idx_user` (`user_id`),
+    KEY `idx_game` (`game_id`),
+    CONSTRAINT `fk_library_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_library_game` FOREIGN KEY (`game_id`) REFERENCES `games`(`id`) ON DELETE CASCADE
+)
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+----------------------------------------------------------
+
+--
+-- Đang đổ dữ liệu cho bảng `libraries`
+--
+INSERT INTO `libraries`
+(`user_id`, `game_id`, `is_favorite`, `playtime_minutes`)
+  VALUES
+    (1, 1, 1, 540),
+    (1, 5, 1, 1280),
+    (2, 2, 1, 760),
+    (3, 6, 1, 980),
+    (4, 5, 1, 1450);
+
+----------------------------------------------------------
+
+--
+-- Đang đổ dữ liệu cho bảng `users` (Nếu chưa có liệu users thì insert vào rồi mới insert dữ liệu của bảng `libraries`)
+--
+INSERT INTO `users`
+(`id`, `username`, `email`, `password_hash`, `display_name`)
+  VALUES
+    (1, 'player1', 'player1@gmail.com', '123456', 'Player One'),
+    (2, 'wizard99', 'wizard99@gmail.com', '123456', 'Wizard'),
+    (3, 'shadowfox', 'shadowfox@gmail.com', '123456', 'Shadow Fox'),
+    (4, 'nightblade', 'nightblade@gmail.com', '123456', 'Night Blade');
 --
 -- Chỉ mục cho bảng `categories`
 --

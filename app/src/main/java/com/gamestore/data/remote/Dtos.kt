@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName
 data class ApiResponse<T>(
     val success: Boolean = false,
     val message: String  = "",
-    val data: T?         = null,
+    val data: T?         = null
 )
 
 data class PagedData<T>(
@@ -86,4 +86,36 @@ data class OrderItemDto(
     val gameThumbnail: String = "",
     val price: Double = 0.0,
     val quantity: Int = 1,
+)
+
+data class LibraryGameDto(
+
+    val id: Int = 0,
+
+    @SerializedName("user_id")
+    val user_id: Int = 0,
+
+    @SerializedName("game_id")
+    val game_id: Int = 0,
+
+    @SerializedName("purchase_date")
+    val purchaseDate: String = "",
+
+    @SerializedName("is_favorite")
+    val is_favorite: Boolean = false,
+
+    @SerializedName("playtime_minutes")
+    val playtimeMinutes: Int = 0,
+
+    @SerializedName("last_played_at")
+    val lastPlayedAt: String? = null,
+
+    val title: String = "",
+
+    val genre: String = "",
+
+    @SerializedName("thumbnail_url")
+    val thumbnailUrl: String = "",
+
+    val price: Double = 0.0
 )

@@ -59,4 +59,5 @@ object AppModule {
 
     @Provides fun provideGameDao(db: AppDatabase) = db.gameDao()
     @Provides fun provideCartDao(db: AppDatabase) = db.cartDao()
+    @Provides fun provideLibraryDao(db: AppDatabase): LibraryDao = db.libraryDao()
 }

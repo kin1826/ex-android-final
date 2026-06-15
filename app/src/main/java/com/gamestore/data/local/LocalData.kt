@@ -100,14 +100,67 @@ interface CartDao {
     @Query("DELETE FROM cart_items WHERE userId = :uid")
     suspend fun clearAll(uid: Int)
 }
+@Entity(
+    tableName = "libraries",
+    indices = [
+        Index(value = ["user_id", "game_id"], unique = true),
+        Index(value = ["user_id"]),
+        Index(value = ["game_id"])
+    ]
+)
+data class LibraryEntity(
 
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+
+    @ColumnInfo(name = "user_id")
+    val userId: Int,
+
+    @ColumnInfo(name = "game_id")
+    val gameId: Int,
+
+    @ColumnInfo(name = "purchase_date")
+    val purchaseDate: Long = System.currentTimeMillis(),
+
+    @ColumnInfo(name = "is_favorite")
+    val isFavorite: Boolean = false,
+
+    @ColumnInfo(name = "playtime_minutes")
+    val playtimeMinutes: Int = 0,
+
+    @ColumnInfo(name = "last_played_at")
+    val lastPlayedAt: Long? = null,
+
+    val title: String,
+    val genre: String,
+    val thumbnailUrl: String,
+    val price: Double = 0.0
+)
+
+@Dao
+interface LibraryDao {
+
+    @Query("SELECT * FROM libraries WHERE user_id = :uid ORDER BY purchase_date DESC")
+    fun getUserLibrary(uid: Int): Flow<List<LibraryEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(item: LibraryEntity)
+
+    @Query("SELECT COUNT(*) FROM libraries WHERE user_id = :uid")
+    fun getCount(uid: Int): Flow<Int>
+
+    @Query("DELETE FROM libraries WHERE user_id = :uid AND game_id = :gid")
+    suspend fun delete(uid: Int, gid: Int)
+}
 @Database(
-    entities  = [GameEntity::class, CartEntity::class],
+    entities  = [GameEntity::class, CartEntity::class, LibraryEntity::class],
     version   = 1,
     exportSchema = false
 )
+
 abstract class AppDatabase : RoomDatabase() {
     abstract fun gameDao(): GameDao
     abstract fun cartDao(): CartDao
+    abstract fun libraryDao() : LibraryDao
     companion object { const val NAME = "gamestore.db" }
 }

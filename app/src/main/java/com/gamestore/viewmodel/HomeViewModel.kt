@@ -60,8 +60,21 @@ class HomeViewModel @Inject constructor(
             } else if (cached.isEmpty()) {
                 _featured.value = UiState.Error("Không tải được dữ liệu")
             }
-        } catch (e: Exception) {
-            if (cached.isEmpty()) _featured.value = UiState.Error("Không có kết nối mạng")
+        }
+//        catch (e: Exception) {
+//            if (cached.isEmpty()) _featured.value = UiState.Error("Không có kết nối mạng")
+//        }
+        catch (e: Exception) {
+
+            e.printStackTrace()
+
+            if (cached.isEmpty()) {
+
+                _featured.value =
+                    UiState.Error(
+                        e.message ?: "Unknown error"
+                    )
+            }
         }
     }
 
@@ -80,8 +93,21 @@ class HomeViewModel @Inject constructor(
             } else if (cached.isEmpty()) {
                 _hotDeals.value = UiState.Error("Không tải được dữ liệu")
             }
-        } catch (e: Exception) {
-            if (cached.isEmpty()) _hotDeals.value = UiState.Error("Không có kết nối mạng")
+        }
+//        catch (e: Exception) {
+//            if (cached.isEmpty()) _hotDeals.value = UiState.Error("Không có kết nối mạng")
+//        }
+        catch (e: Exception) {
+
+            e.printStackTrace()
+
+            if (cached.isEmpty()) {
+
+                _featured.value =
+                    UiState.Error(
+                        e.message ?: "Unknown error"
+                    )
+            }
         }
     }
 
@@ -100,8 +126,21 @@ class HomeViewModel @Inject constructor(
             } else if (cached.isEmpty()) {
                 _newReleases.value = UiState.Error("Không tải được dữ liệu")
             }
-        } catch (e: Exception) {
-            if (cached.isEmpty()) _newReleases.value = UiState.Error("Không có kết nối mạng")
+        }
+//        catch (e: Exception) {
+//            if (cached.isEmpty()) _newReleases.value = UiState.Error("Không có kết nối mạng")
+//        }
+        catch (e: Exception) {
+
+            e.printStackTrace()
+
+            if (cached.isEmpty()) {
+
+                _featured.value =
+                    UiState.Error(
+                        e.message ?: "Unknown error"
+                    )
+            }
         }
     }
 
