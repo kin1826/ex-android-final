@@ -31,7 +31,8 @@ interface GameApi {
 
     @GET("games.php")
     suspend fun getById(
-        @Query("id") id: Int
+        @Query("id") id: Int,
+        @Query("userId") userId: Int? = null,
     ): Response<ApiResponse<GameDto>>
 
     @GET("games.php")
@@ -70,4 +71,18 @@ interface OrderApi {
     suspend fun createOrder(
         @Body body: CreateOrderRequest
     ): Response<ApiResponse<OrderDto>>
+}
+
+interface UserApi {
+    @GET("users.php")
+    suspend fun getProfile(
+        @Query("action") action: String = "profile",
+        @Query("userId") userId: Int
+    ): Response<ApiResponse<UserDto>>
+
+    @POST("users.php")
+    suspend fun deposit(
+        @Query("action") action: String = "deposit",
+        @Body body: DepositRequest
+    ): Response<ApiResponse<Map<String, Any>>>
 }

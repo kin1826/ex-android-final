@@ -9,7 +9,8 @@ fun GameDto.toModel() = Game(
     discountPercent = discountPercent, rating = rating,
     reviewCount = reviewCount, genre = genre, developer = developer,
     thumbnailUrl = thumbnailUrl,
-    isFeatured = isFeatured, isHot = isHot, isNew = isNew, stock = stock,
+    isFeatured = isFeatured, isHot = isHot, isNew = isNew, 
+    isOwned = isOwned, stock = stock,
 )
 
 fun GameDto.toEntity() = GameEntity(
@@ -21,6 +22,7 @@ fun GameDto.toEntity() = GameEntity(
     isFeatured = if (isFeatured) 1 else 0,
     isHot      = if (isHot) 1 else 0,
     isNew      = if (isNew) 1 else 0,
+    isOwned    = if (isOwned) 1 else 0,
     stock      = stock,
 )
 

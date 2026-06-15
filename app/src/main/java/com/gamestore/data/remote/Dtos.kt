@@ -28,6 +28,7 @@ data class GameDto(
     @SerializedName("isFeatured")      val isFeatured: Boolean = false,
     @SerializedName("isHot")           val isHot: Boolean = false,
     @SerializedName("isNew")           val isNew: Boolean = false,
+    @SerializedName("isOwned")         val isOwned: Boolean = false,
     val stock: Int = 999,
 )
 
@@ -66,6 +67,11 @@ data class CreateOrderRequest(
     val items: List<OrderItemReq>,
     val paymentMethod: String = "WALLET",
     val note: String = "",
+)
+
+data class DepositRequest(
+    val userId: Int,
+    val amount: Double
 )
 
 data class OrderItemReq(val gameId: Int, val quantity: Int)

@@ -31,10 +31,11 @@ class DetailViewModel @Inject constructor(
 
     private fun loadGame() = viewModelScope.launch {
         _game.value = UiState.Loading
+        val userId = tm.getUserId()
         val cached = gameDao.getById(gameId)
         if (cached != null) _game.value = UiState.Success(cached.toModel())
         try {
-            val resp = api.getById(gameId)
+            val resp = api.getById(gameId, if (userId > 0) userId else null)
             if (resp.isSuccessful && resp.body()?.data != null) {
                 val dto = resp.body()!!.data!!
                 gameDao.insert(dto.toEntity())

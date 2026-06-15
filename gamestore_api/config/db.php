@@ -1,4 +1,8 @@
 <?php
+// Tắt hiển thị lỗi trực tiếp để không làm hỏng cấu trúc JSON
+error_reporting(0);
+ini_set('display_errors', 0);
+
 // 1. Cấu hình mặc định (Dành cho máy XAMPP của bạn bạn)
 $db_host = '127.0.0.1';
 $db_user = 'root';
