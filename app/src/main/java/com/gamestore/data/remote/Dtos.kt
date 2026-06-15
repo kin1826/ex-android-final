@@ -46,7 +46,7 @@ data class GameDto(
 data class CategoryDto(
     val id: Int = 0,
     val name: String = "",
-    val iconEmoji: String = "",
+    @SerializedName("iconEmoji") val iconEmoji: String = "",
 )
 
 data class LoginRequest(val email: String, val password: String)
@@ -104,4 +104,46 @@ data class OrderItemDto(
     val gameThumbnail: String = "",
     val price: Double = 0.0,
     val quantity: Int = 1,
+)
+
+data class AdminStatsDto(
+    val totalUsers: Int = 0,
+    val totalOrders: Int = 0,
+    val totalRevenue: Double = 0.0,
+    val topGames: List<AdminTopGameDto> = emptyList()
+)
+
+data class AdminTopGameDto(
+    val id: Int = 0,
+    val title: String = "",
+    val thumbnailUrl: String = "",
+    val genre: String = "",
+    val price: Double = 0.0,
+    val salesCount: Int = 0
+)
+
+data class CategoryRequest(
+    val adminId: Int,
+    val name: String,
+    val iconEmoji: String
+)
+
+data class GameRequest(
+    val adminId: Int,
+    val id: Int? = null,
+    val title: String,
+    val description: String,
+    val price: Double,
+    val originalPrice: Double,
+    val discountPercent: Int,
+    val genre: String,
+    val developer: String,
+    val publisher: String,
+    val releaseDate: String,
+    val platforms: String,
+    val downloadSize: String,
+    val thumbnailUrl: String,
+    val isFeatured: Int,
+    val isHot: Int,
+    val isNew: Int
 )
