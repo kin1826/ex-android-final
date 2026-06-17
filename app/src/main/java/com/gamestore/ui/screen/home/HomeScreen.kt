@@ -34,20 +34,34 @@ fun HomeScreen(
     onCartClick: () -> Unit,
     vm: HomeViewModel = hiltViewModel(),
 ) {
-    val featured    by vm.featured.collectAsStateWithLifecycle()
-    val hotDeals    by vm.hotDeals.collectAsStateWithLifecycle()
+    val featured by vm.featured.collectAsStateWithLifecycle()
+    val hotDeals by vm.hotDeals.collectAsStateWithLifecycle()
     val newReleases by vm.newReleases.collectAsStateWithLifecycle()
-    val categories  by vm.categories.collectAsStateWithLifecycle()
-    val cartCount   by vm.cartCount.collectAsStateWithLifecycle()
+    val categories by vm.categories.collectAsStateWithLifecycle()
+    val selectedGenre by vm.selectedGenre.collectAsStateWithLifecycle()
+    val cartCount by vm.cartCount.collectAsStateWithLifecycle()
+
+    val searchText by vm.searchText.collectAsStateWithLifecycle()
+    val searchResult by vm.searchResult.collectAsStateWithLifecycle()
+
+    val isSearching = searchText.isNotBlank()
 
     Scaffold(
         containerColor = DarkBg,
         topBar = {
             TopAppBar(
-                title = { Text("⚡ GAMESTORE", fontWeight = FontWeight.ExtraBold, color = PurpleLt, fontSize = 20.sp, letterSpacing = 1.sp) },
+                title = {
+                    Text(
+                        "⚡ GAMESTORE",
+                        fontWeight = FontWeight.ExtraBold,
+                        color = PurpleLt,
+                        fontSize = 20.sp
+                    )
+                },
                 actions = {
                     BadgedBox(badge = {
-                        if (cartCount > 0) Badge(containerColor = RedColor) { Text("$cartCount") }
+                        if (cartCount > 0)
+                            Badge(containerColor = RedColor) { Text("$cartCount") }
                     }) {
                         IconButton(onClick = onCartClick) {
                             Icon(Icons.Default.ShoppingCart, null, tint = TextPri)
@@ -58,37 +72,156 @@ fun HomeScreen(
             )
         }
     ) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding), verticalArrangement = Arrangement.spacedBy(4.dp)) {
 
-            if (categories.isNotEmpty()) {
-                item {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(categories) { cat ->
-                            FilterChip(
-                                selected = false, onClick = {},
-                                label = { Text("${cat.iconEmoji} ${cat.name}", fontSize = 12.sp) },
-                                colors = FilterChipDefaults.filterChipColors(containerColor = DarkCard, labelColor = TextMuted),
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+
+            // ================= SEARCH =================
+            item {
+                Spacer(Modifier.height(25.dp))
+
+                OutlinedTextField(
+                    value = searchText,
+                    onValueChange = { vm.onSearchChange(it) },
+
+                    leadingIcon = {
+                        Icon(Icons.Default.Search, null)
+                    },
+
+                    trailingIcon = {
+                        if (searchText.isNotBlank()) {
+                            IconButton(onClick = {
+                                vm.onSearchChange("")
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Clear"
+                                )
+                            }
+                        }
+                    },
+                    placeholder = { Text("Tìm game...") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFB026FF),
+                        unfocusedBorderColor = Color(0xFFB026FF),
+                        focusedTextColor = TextPri,
+                        unfocusedTextColor = TextPri
+                    )
+                )
+
+                Spacer(Modifier.height(10.dp))
+            }
+
+            // ================= SEARCH MODE =================
+            if (isSearching) {
+
+                when (searchResult) {
+
+                    is UiState.Loading -> {
+                        item {
+                            Box(
+                                Modifier.fillMaxWidth().height(120.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = PurpleLt)
+                            }
+                        }
+                    }
+
+                    is UiState.Error -> {
+                        item {
+                            Text(
+                                text = (searchResult as UiState.Error).message,
+                                color = TextMuted,
+                                modifier = Modifier.padding(16.dp)
                             )
                         }
                     }
-                }
-            }
 
-            item { SectionTitle("⭐ Nổi bật") }
-            item { GameRow(featured, onGameClick) }
-            item { SectionTitle("🔥 Giảm giá hot") }
-            item { GameRow(hotDeals, onGameClick) }
-            item { SectionTitle("🆕 Mới phát hành") }
+                    is UiState.Success -> {
+                        val data = (searchResult as UiState.Success<List<Game>>).data
 
-            when (val s = newReleases) {
-                is UiState.Success -> items(s.data, key = { it.id }) { game ->
-                    GameListItem(game, { onGameClick(game.id) }, Modifier.padding(horizontal = 16.dp, vertical = 3.dp))
+                        if (data.isEmpty()) {
+                            item {
+                                Text(
+                                    "Không tìm thấy game",
+                                    color = TextMuted,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                        } else {
+                            items(data, key = { it.id }) { game ->
+                                GameListItem(
+                                    game,
+                                    { onGameClick(game.id) },
+                                    Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
                 }
-                is UiState.Loading -> item { Box(Modifier.fillMaxWidth().height(80.dp), Alignment.Center) { CircularProgressIndicator(color = PurpleLt, modifier = Modifier.size(24.dp)) } }
-                is UiState.Error   -> item { Text(s.message, color = TextMuted, modifier = Modifier.padding(16.dp)) }
+
+            } else {
+
+                // ================= NORMAL HOME =================
+
+                if (categories.isNotEmpty()) {
+                    item {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(categories, key = { it.id }) { cat ->
+                                FilterChip(
+                                    selected = selectedGenre == cat.name,
+                                    onClick = { vm.onGenreClick(cat.name) },
+                                    label = { Text("${cat.iconEmoji} ${cat.name}") }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item { SectionTitle("⭐ Nổi bật") }
+                item { GameRow(featured, onGameClick) }
+
+                item { SectionTitle("🔥 Giảm giá hot") }
+                item { GameRow(hotDeals, onGameClick) }
+
+                item { SectionTitle("🆕 Mới phát hành") }
+                item {
+                    when (val s = newReleases) {
+                        is UiState.Success ->
+                            s.data.forEach { game ->
+                                GameListItem(
+                                    game,
+                                    { onGameClick(game.id) },
+                                    Modifier.padding(horizontal = 16.dp, vertical = 3.dp)
+                                )
+                            }
+
+                        is UiState.Loading ->
+                            Box(Modifier.fillMaxWidth(), Alignment.Center) {
+                                CircularProgressIndicator(color = PurpleLt)
+                            }
+
+                        is UiState.Error ->
+                            Text(
+                                s.message,
+                                color = TextMuted,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                    }
+                }
             }
 
             item { Spacer(Modifier.height(80.dp)) }
@@ -240,5 +373,13 @@ fun SkeletonCard() {
                 Box(Modifier.fillMaxWidth(0.6f).height(14.dp).clip(RoundedCornerShape(4.dp)).background(DarkBorder))
             }
         }
+    }
+}
+fun List<Game>.filterBySearch(query: String): List<Game> {
+    if (query.isBlank()) return this
+
+    return filter {
+        it.title.contains(query, ignoreCase = true) ||
+                it.genre.contains(query, ignoreCase = true)
     }
 }

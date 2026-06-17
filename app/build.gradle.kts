@@ -27,8 +27,9 @@ android {
         if (localPropertiesFile.exists()) {
             localPropertiesFile.inputStream().use { props.load(it) }
         }
-        val baseUrl = props.getProperty("api.url") ?: "http://10.0.2.2:8080/api/"
+//      val baseUrl = props.getProperty("api.url") ?: "http://10.0.2.2:8080/api/"
 
+        val baseUrl = props.getProperty("api.url") ?: "http://10.0.2.2/gamestore_api/api/"
         buildConfigField("String", "API_BASE_URL", "\"$baseUrl\"")
     }
 
