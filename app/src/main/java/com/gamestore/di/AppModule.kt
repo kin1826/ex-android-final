@@ -53,6 +53,7 @@ object AppModule {
     @Provides @Singleton fun provideLibraryApi(r: Retrofit): LibraryApi = r.create(LibraryApi::class.java)
     @Provides @Singleton fun provideUserApi(r: Retrofit): UserApi   = r.create(UserApi::class.java)
     @Provides @Singleton fun provideAdminApi(r: Retrofit): AdminApi = r.create(AdminApi::class.java)
+    @Provides @Singleton fun provideWishlistApi(r: Retrofit): WishlistApi = r.create(WishlistApi::class.java)
 
     @Provides @Singleton
     fun provideDatabase(@ApplicationContext ctx: Context): AppDatabase =

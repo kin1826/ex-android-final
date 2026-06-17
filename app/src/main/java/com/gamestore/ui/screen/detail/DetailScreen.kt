@@ -197,13 +197,27 @@ fun DetailScreen(
                         ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
                         }
-                        IconButton(
-                            onClick = onCartClick,
-                            modifier = Modifier
-                                .background(Color.Black.copy(0.5f), CircleShape)
-                                .size(40.dp),
-                        ) {
-                            Icon(Icons.Default.ShoppingCart, null, tint = Color.White)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            IconButton(
+                                onClick = { vm.toggleWishlist() },
+                                modifier = Modifier
+                                    .background(Color.Black.copy(0.5f), CircleShape)
+                                    .size(40.dp),
+                            ) {
+                                Icon(
+                                    if (game.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    null,
+                                    tint = if (game.isFavorite) RedColor else Color.White
+                                )
+                            }
+                            IconButton(
+                                onClick = onCartClick,
+                                modifier = Modifier
+                                    .background(Color.Black.copy(0.5f), CircleShape)
+                                    .size(40.dp),
+                            ) {
+                                Icon(Icons.Default.ShoppingCart, null, tint = Color.White)
+                            }
                         }
                     }
 

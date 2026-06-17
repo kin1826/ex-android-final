@@ -123,4 +123,41 @@ interface AdminApi {
         @Query("id") id: Int,
         @Query("adminId") adminId: Int
     ): Response<ApiResponse<String>>
+
+    // ── QUẢN LÝ NGƯỜI DÙNG ──
+    @GET("admin_users.php")
+    suspend fun getUsers(
+        @Query("adminId") adminId: Int,
+        @Query("q") search: String? = null
+    ): Response<ApiResponse<List<UserDto>>>
+
+    @POST("admin_users.php")
+    suspend fun updateWallet(
+        @Query("action") action: String = "update_wallet",
+        @Body body: WalletUpdateRequest
+    ): Response<ApiResponse<Unit>>
+
+    @POST("admin_users.php")
+    suspend fun resetPassword(
+        @Query("action") action: String = "reset_password",
+        @Body body: GenericAdminRequest
+    ): Response<ApiResponse<Unit>>
+
+    @POST("admin_users.php")
+    suspend fun updateUserStatus(
+        @Query("action") action: String = "update_status",
+        @Body body: UserStatusUpdateRequest
+    ): Response<ApiResponse<Unit>>
+}
+
+interface WishlistApi {
+    @GET("wishlist.php")
+    suspend fun getWishlist(
+        @Query("userId") userId: Int
+    ): Response<ApiResponse<List<GameDto>>>
+
+    @POST("wishlist.php")
+    suspend fun toggleWishlist(
+        @Body body: WishlistToggleRequest
+    ): Response<ApiResponse<WishlistToggleResponse>>
 }

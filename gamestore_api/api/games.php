@@ -24,6 +24,7 @@ if ($method === 'GET' && ($idFromQuery > 0 || is_numeric($action))) {
 
     // Kiểm tra xem user đã mua game này chưa
     $isOwned = false;
+    $isFavorite = false;
     if ($userId > 0) {
         $checkOwned = $db->query("
             SELECT oi.id
@@ -33,10 +34,14 @@ if ($method === 'GET' && ($idFromQuery > 0 || is_numeric($action))) {
             LIMIT 1
         ");
         $isOwned = ($checkOwned && $checkOwned->num_rows > 0);
+
+        $checkFav = $db->query("SELECT * FROM wishlists WHERE user_id = $userId AND game_id = $id LIMIT 1");
+        $isFavorite = ($checkFav && $checkFav->num_rows > 0);
     }
 
     $gameData = formatGame($row);
     $gameData['isOwned'] = $isOwned;
+    $gameData['isFavorite'] = $isFavorite;
 
     sendJSON(['success' => true, 'data' => $gameData]);
 }
@@ -196,6 +201,7 @@ function formatGame($row) {
         'isHot'           => (bool)$row['is_hot'],
         'isNew'           => (bool)$row['is_new'],
         'isOwned'         => (bool)($row['isOwned'] ?? false),
+        'isFavorite'      => (bool)($row['isFavorite'] ?? false),
         'stock'           => (int)$row['stock'],
     ];
 }

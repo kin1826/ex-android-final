@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -84,6 +85,7 @@ fun OrderHistoryScreen(
     vm: OrderViewModel = hiltViewModel(),
 ) {
     val state by vm.orders.collectAsStateWithLifecycle()
+    val isRefreshing by vm.isRefreshing.collectAsStateWithLifecycle()
 
     Scaffold(
         containerColor = DarkBg,
@@ -99,34 +101,42 @@ fun OrderHistoryScreen(
             )
         }
     ) { padding ->
-        when (val s = state) {
-            is UiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = PurpleLt)
-            }
-            is UiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("😕", fontSize = 48.sp)
-                    Text(s.message, color = TextMuted)
-                }
-            }
-            is UiState.Success -> {
-                if (s.data.isEmpty()) {
-                    Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Text("📦", fontSize = 56.sp)
-                            Text("Chưa có đơn hàng", color = TextMuted, fontSize = 16.sp)
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { vm.refresh() },
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
+            Box(Modifier.fillMaxSize()) {
+                when (val s = state) {
+                    is UiState.Loading -> if (!isRefreshing) Box(Modifier.fillMaxSize(), Alignment.Center) {
+                        CircularProgressIndicator(color = PurpleLt)
+                    }
+                    is UiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("😕", fontSize = 48.sp)
+                            Text(s.message, color = TextMuted)
                         }
                     }
-                } else {
-                    LazyColumn(
-                        modifier       = Modifier.fillMaxSize().padding(padding),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        items(s.data, key = { it.id }) { order -> OrderCard(order) }
+                    is UiState.Success -> {
+                        if (s.data.isEmpty()) {
+                            Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), Alignment.Center) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Text("📦", fontSize = 56.sp)
+                                    Text("Chưa có đơn hàng", color = TextMuted, fontSize = 16.sp)
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                items(s.data, key = { it.id }) { order -> OrderCard(order) }
+                            }
+                        }
                     }
                 }
             }

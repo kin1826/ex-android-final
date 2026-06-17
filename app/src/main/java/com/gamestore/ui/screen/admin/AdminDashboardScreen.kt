@@ -33,6 +33,7 @@ fun AdminDashboardScreen(
     onBack: () -> Unit,
     onManageGames: () -> Unit,
     onManageCategories: () -> Unit,
+    onManageUsers: () -> Unit,
     vm: AdminViewModel = hiltViewModel()
 ) {
     val statsState by vm.stats.collectAsStateWithLifecycle()
@@ -62,7 +63,7 @@ fun AdminDashboardScreen(
                     // 1. Thống kê tổng quan
                     item {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            StatCard("Người dùng", "${stats.totalUsers}", Icons.Default.People, PurpleLt, Modifier.weight(1f))
+                            StatCard("Người dùng", "${stats.totalUsers}", Icons.Default.People, PurpleLt, Modifier.weight(1f).clickable { onManageUsers() })
                             StatCard("Đơn hàng", "${stats.totalOrders}", Icons.Default.Receipt, Color(0xFF3B82F6), Modifier.weight(1f))
                         }
                     }
@@ -72,12 +73,10 @@ fun AdminDashboardScreen(
 
                     // 2. Các nút chức năng
                     item {
-                        Text("QUẢN LÝ", color = TextMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-                    item {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             AdminMenuButton("Game", Icons.Default.Games, Purple, onManageGames, Modifier.weight(1f))
                             AdminMenuButton("Thể loại", Icons.Default.Category, Color(0xFFF59E0B), onManageCategories, Modifier.weight(1f))
+                            AdminMenuButton("User", Icons.Default.Person, Color(0xFF10B981), onManageUsers, Modifier.weight(1f))
                         }
                     }
 

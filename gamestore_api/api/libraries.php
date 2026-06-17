@@ -1,70 +1,52 @@
 <?php
+require_once '../config/db.php';
 
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Origin: *");
+$db = getDB();
 
-$host = "localhost";
-$db   = "gamestore_db";
-$user = "root";
-$pass = "";
+// Lấy user_id từ query
+$userId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 0;
 
-$conn = new mysqli($host, $user, $pass, $db);
-
-if ($conn->connect_error) {
-    die(json_encode([
-        "success" => false,
-        "message" => "Database connection failed"
-    ]));
-}
-
-// lấy user_id từ query
-$user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
-
-if ($user_id == 0) {
-    echo json_encode([
-        "success" => false,
-        "message" => "Missing user_id"
-    ]);
-    exit;
+if ($userId <= 0) {
+    sendJSON(["success" => false, "message" => "Thiếu user_id"], 400);
 }
 
 $sql = "
-SELECT 
-    l.id,
-    l.user_id,
-    l.game_id,
-    l.purchase_date,
-    l.is_favorite,
-    l.playtime_minutes,
-    l.last_played_at,
-
-    g.title,
-    g.genre,
-    g.price,
-    g.thumbnail_url
-
-FROM libraries l
-JOIN games g ON l.game_id = g.id
-WHERE l.user_id = ?
-ORDER BY l.purchase_date DESC
+    SELECT
+        l.id,
+        l.user_id as userId,
+        l.game_id as gameId,
+        l.purchase_date as purchaseDate,
+        l.is_favorite as isFavorite,
+        l.playtime_minutes as playtimeMinutes,
+        l.last_played_at as lastPlayedAt,
+        COALESCE(g.title, '') as gameTitle,
+        COALESCE(g.genre, '') as genre,
+        COALESCE(g.price, 0) as price,
+        COALESCE(g.thumbnail_url, '') as thumbnailUrl,
+        COALESCE(g.description, '') as description,
+        COALESCE(g.discount_percent, 0) as discountPercent
+    FROM libraries l
+    JOIN games g ON l.game_id = g.id
+    WHERE l.user_id = ?
+    ORDER BY l.purchase_date DESC
 ";
 
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $user_id);
+$stmt = $db->prepare($sql);
+$stmt->bind_param("i", $userId);
 $stmt->execute();
-
 $result = $stmt->get_result();
 
 $libraries = [];
-
 while ($row = $result->fetch_assoc()) {
+    $row['id']              = (int)$row['id'];
+    $row['userId']          = (int)$row['userId'];
+    $row['gameId']          = (int)$row['gameId'];
+    $row['isFavorite']      = (bool)$row['isFavorite'];
+    $row['playtimeMinutes'] = (int)$row['playtimeMinutes'];
+    $row['price']           = (float)$row['price'];
+    $row['discountPercent'] = (float)$row['discountPercent'];
     $libraries[] = $row;
 }
 
-echo json_encode([
-    "success" => true,
-    "data" => $libraries
-]);
-
-$conn->close();
+sendJSON(["success" => true, "data" => $libraries]);
 ?>

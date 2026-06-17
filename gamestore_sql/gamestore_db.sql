@@ -12,6 +12,14 @@
 
 SELECT * FROM users;
 SELECT * FROM categories;
+SELECT * FROM games;
+SELECT * FROM wishlists;
+-- Nếu có game mua từ trước thì bỏ Note đoạn này và chạy để Sync Game
+-- INSERT IGNORE INTO libraries (user_id, game_id, purchase_date)
+-- SELECT o.user_id, oi.game_id, o.created_at
+-- FROM orders o
+-- JOIN order_items oi ON o.id = oi.order_id
+-- WHERE o.status = 'COMPLETED';
 
 -- --------------------------------------------------
 -- Phần chính
@@ -344,3 +352,4 @@ ALTER TABLE games ADD COLUMN publisher VARCHAR(255) AFTER developer;
 ALTER TABLE games ADD COLUMN release_date VARCHAR(50) AFTER publisher;
 ALTER TABLE games ADD COLUMN platforms VARCHAR(255) AFTER release_date;
 ALTER TABLE games ADD COLUMN download_size VARCHAR(50) AFTER platforms;
+ALTER TABLE users ADD COLUMN is_active TINYINT(1) DEFAULT 1 AFTER is_admin;

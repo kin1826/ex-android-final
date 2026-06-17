@@ -17,12 +17,16 @@ class OrderViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _orders = MutableStateFlow<UiState<List<Order>>>(UiState.Loading)
+    private val _isRefreshing = MutableStateFlow(false)
     val orders: StateFlow<UiState<List<Order>>> = _orders.asStateFlow()
+    val isRefreshing = _isRefreshing.asStateFlow()
 
     init { loadOrders() }
 
+    fun refresh() = loadOrders()
+
     fun loadOrders() = viewModelScope.launch {
-        _orders.value = UiState.Loading
+        _isRefreshing.value = true
         try {
             val resp = orderApi.getOrders(tm.getUserId())
             if (resp.isSuccessful && resp.body()?.data != null) {
@@ -32,6 +36,8 @@ class OrderViewModel @Inject constructor(
             }
         } catch (e: Exception) {
             _orders.value = UiState.Error("Không có kết nối mạng")
+        } finally {
+            _isRefreshing.value = false
         }
     }
 }
