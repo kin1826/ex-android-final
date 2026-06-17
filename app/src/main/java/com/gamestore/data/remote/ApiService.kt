@@ -42,7 +42,7 @@ interface GameApi {
     suspend fun search(
         @Query("action") action: String = "search",
         @Query("q") q: String,
-    ): Response<ApiResponse<List<GameDto>>>
+    ): Response<ApiResponse<PagedData<GameDto>>>
 
     @GET("categories.php")
     suspend fun getCategories(): Response<ApiResponse<List<CategoryDto>>>
