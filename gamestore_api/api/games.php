@@ -89,19 +89,30 @@ if ($method === 'GET' && $action === 'search') {
 
 // ── GET /api/games (danh sách có lọc) ────────────────────────
 if ($method === 'GET') {
-    // ... (giữ nguyên code cũ)
-    $where  = '1=1';
-    $genre  = $db->real_escape_string($_GET['genre']  ?? '');
-    $search = $db->real_escape_string($_GET['search'] ?? '');
+    $where    = '1=1';
+    $genre    = $db->real_escape_string($_GET['genre']  ?? '');
+    $search   = $db->real_escape_string($_GET['search'] ?? '');
+    $minPrice = isset($_GET['minPrice']) ? (float)$_GET['minPrice'] : -1;
+    $maxPrice = isset($_GET['maxPrice']) ? (float)$_GET['maxPrice'] : -1;
+    $sortBy   = $_GET['sortBy'] ?? 'newest'; // newest, price_asc, price_desc, rating
+
     $page   = max(0, (int)($_GET['page'] ?? 0));
     $size   = min(50, (int)($_GET['pageSize'] ?? 20));
     $offset = $page * $size;
 
     if ($genre)  $where .= " AND genre = '$genre'";
     if ($search) $where .= " AND (title LIKE '%$search%' OR genre LIKE '%$search%')";
+    if ($minPrice >= 0) $where .= " AND price >= $minPrice";
+    if ($maxPrice >= 0) $where .= " AND price <= $maxPrice";
+
+    $order = "created_at DESC";
+    if ($sortBy === 'price_asc')  $order = "price ASC";
+    elseif ($sortBy === 'price_desc') $order = "price DESC";
+    elseif ($sortBy === 'rating')     $order = "rating DESC";
+    elseif ($sortBy === 'newest')     $order = "created_at DESC";
 
     $total = $db->query("SELECT COUNT(*) as c FROM games WHERE $where")->fetch_assoc()['c'];
-    $res   = $db->query("SELECT * FROM games WHERE $where ORDER BY created_at DESC LIMIT $size OFFSET $offset");
+    $res   = $db->query("SELECT * FROM games WHERE $where ORDER BY $order LIMIT $size OFFSET $offset");
 
     sendJSON(['success' => true, 'data' => [
         'items'    => fetchAll($res),

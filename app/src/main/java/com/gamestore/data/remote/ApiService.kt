@@ -25,6 +25,9 @@ interface GameApi {
     suspend fun getGames(
         @Query("genre")    genre: String?  = null,
         @Query("search")   search: String? = null,
+        @Query("minPrice") minPrice: Double? = null,
+        @Query("maxPrice") maxPrice: Double? = null,
+        @Query("sortBy")   sortBy: String?   = null,
         @Query("page")     page: Int       = 0,
         @Query("pageSize") size: Int       = 20,
     ): Response<ApiResponse<PagedData<GameDto>>>
