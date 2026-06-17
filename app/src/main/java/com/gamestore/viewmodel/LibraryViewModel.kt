@@ -3,10 +3,11 @@ package com.gamestore.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gamestore.data.local.LibraryDao
-import com.gamestore.model.Game
-import com.gamestore.model.UiState
+import com.gamestore.data.remote.LibraryApi
 import com.gamestore.data.remote.toGame
 import com.gamestore.data.remote.toLibraryEntity
+import com.gamestore.model.Game
+import com.gamestore.model.UiState
 import com.gamestore.util.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -16,18 +17,23 @@ import javax.inject.Inject
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
     private val libraryDao: LibraryDao,
+    private val libraryApi: LibraryApi,
     private val tm: TokenManager
 ) : ViewModel() {
 
     private val userId = tm.getUserId()
 
+    init {
+        syncLibrary()
+    }
+
     val games: StateFlow<UiState<List<Game>>> =
         libraryDao.getUserLibrary(userId)
-            .map { list ->
-                list.map { it.toGame() }
+            .map { entities ->
+                entities.map { it.toGame() }
             }
-            .map { games ->
-                UiState.Success(games) as UiState<List<Game>>
+            .map<List<Game>, UiState<List<Game>>> {
+                UiState.Success(it)
             }
             .catch { e ->
                 emit(UiState.Error(e.message ?: "Unknown error"))
@@ -38,11 +44,64 @@ class LibraryViewModel @Inject constructor(
                 initialValue = UiState.Loading
             )
 
+    fun syncLibrary() {
+        viewModelScope.launch {
+
+            try {
+
+                val response =
+                    libraryApi.getLibrary(userId)
+
+                if (
+                    response.isSuccessful &&
+                    response.body()?.success == true
+                ) {
+
+                    val items =
+                        response.body()?.data.orEmpty()
+
+                    libraryDao.clearUserLibrary(userId)
+
+                    libraryDao.insertAll(
+                        items.map {
+                            it.toLibraryEntity()
+                        }
+                    )
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     fun addToLibrary(game: Game) {
         viewModelScope.launch {
             libraryDao.insert(
                 game.toLibraryEntity(userId)
             )
+        }
+    }
+
+    fun addGamesToLibrary(games: List<Game>) {
+        viewModelScope.launch {
+            libraryDao.insertAll(
+                games.map {
+                    it.toLibraryEntity(userId)
+                }
+            )
+        }
+    }
+
+    fun clearLibrary() {
+        viewModelScope.launch {
+            libraryDao.clearUserLibrary(userId)
+        }
+    }
+
+    fun removeGame(gameId: Int) {
+        viewModelScope.launch {
+            libraryDao.delete(userId, gameId)
         }
     }
 }

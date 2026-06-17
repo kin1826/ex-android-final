@@ -81,3 +81,14 @@ fun Game.toLibraryEntity(userId: Int): LibraryEntity =
         thumbnailUrl = thumbnailUrl,
         price = price
     )
+
+// API -> Room
+fun LibraryItemDto.toLibraryEntity(): LibraryEntity =
+    LibraryEntity(
+        userId = userId,
+        gameId = gameId,
+        title = gameTitle,
+        genre = genre,
+        thumbnailUrl = thumbnailUrl,
+        price = price
+    )

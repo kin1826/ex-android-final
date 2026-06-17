@@ -50,6 +50,7 @@ object AppModule {
     @Provides @Singleton fun provideGameApi(r: Retrofit): GameApi   = r.create(GameApi::class.java)
     @Provides @Singleton fun provideAuthApi(r: Retrofit): AuthApi   = r.create(AuthApi::class.java)
     @Provides @Singleton fun provideOrderApi(r: Retrofit): OrderApi = r.create(OrderApi::class.java)
+    @Provides @Singleton fun provideLibraryApi(r: Retrofit): LibraryApi = r.create(LibraryApi::class.java)
     @Provides @Singleton fun provideUserApi(r: Retrofit): UserApi   = r.create(UserApi::class.java)
     @Provides @Singleton fun provideAdminApi(r: Retrofit): AdminApi = r.create(AdminApi::class.java)
 

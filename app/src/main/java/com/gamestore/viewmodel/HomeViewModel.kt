@@ -25,12 +25,12 @@ class HomeViewModel @Inject constructor(
     private val _hotDeals    = MutableStateFlow<UiState<List<Game>>>(UiState.Loading)
     private val _newReleases = MutableStateFlow<UiState<List<Game>>>(UiState.Loading)
     private val _categories  = MutableStateFlow<List<CategoryDto>>(emptyList())
-
+    private val _selectedGenre = MutableStateFlow<String?>(null)
     val featured:    StateFlow<UiState<List<Game>>> = _featured.asStateFlow()
     val hotDeals:    StateFlow<UiState<List<Game>>> = _hotDeals.asStateFlow()
     val newReleases: StateFlow<UiState<List<Game>>> = _newReleases.asStateFlow()
     val categories:  StateFlow<List<CategoryDto>>   = _categories.asStateFlow()
-
+    val selectedGenre = _selectedGenre.asStateFlow()
     val cartCount: StateFlow<Int> = cartDao
         .getCount(tm.getUserId())
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
@@ -38,10 +38,13 @@ class HomeViewModel @Inject constructor(
     init { refresh() }
 
     fun refresh() {
+        _selectedGenre.value = null
         loadFeatured()
         loadHotDeals()
         loadNewReleases()
-        loadCategories()
+        if (_categories.value.isEmpty()) {
+            loadCategories()
+        }
     }
 
     private fun loadFeatured() = viewModelScope.launch {
@@ -103,7 +106,7 @@ class HomeViewModel @Inject constructor(
 
             if (cached.isEmpty()) {
 
-                _featured.value =
+                _hotDeals.value =
                     UiState.Error(
                         e.message ?: "Unknown error"
                     )
@@ -136,14 +139,13 @@ class HomeViewModel @Inject constructor(
 
             if (cached.isEmpty()) {
 
-                _featured.value =
+                _newReleases.value =
                     UiState.Error(
                         e.message ?: "Unknown error"
                     )
             }
         }
     }
-
     private fun loadCategories() = viewModelScope.launch {
         try {
             val resp = api.getCategories()
@@ -151,5 +153,90 @@ class HomeViewModel @Inject constructor(
                 _categories.value = resp.body()?.data ?: emptyList()
             }
         } catch (_: Exception) {}
+    }
+    fun loadGamesByGenre(
+        genre: String
+    ) = viewModelScope.launch {
+
+        _selectedGenre.value = genre
+
+        _featured.value = UiState.Loading
+        _hotDeals.value = UiState.Loading
+        _newReleases.value = UiState.Loading
+
+        try {
+
+            val response = api.getGames(
+                genre = genre,
+                page = 0,
+                size = 100
+            )
+
+            if (
+                response.isSuccessful &&
+                response.body()?.data?.items != null
+            ) {
+
+                val games =
+                    response.body()!!
+                        .data!!
+                        .items
+                        .map { it.toModel() }
+
+                _featured.value =
+                    UiState.Success(
+                        games.filter { game ->
+                            game.isFeatured
+                        }
+                    )
+
+                _hotDeals.value =
+                    UiState.Success(
+                        games.filter { game ->
+                            game.isHot
+                        }
+                    )
+
+                _newReleases.value =
+                    UiState.Success(
+                        games.filter { game ->
+                            game.isNew
+                        }
+                    )
+
+            } else {
+
+                _featured.value =
+                    UiState.Success(emptyList())
+
+                _hotDeals.value =
+                    UiState.Success(emptyList())
+
+                _newReleases.value =
+                    UiState.Success(emptyList())
+            }
+
+        } catch (e: Exception) {
+
+            val message =
+                e.message ?: "Lỗi tải dữ liệu"
+
+            _featured.value =
+                UiState.Error(message)
+
+            _hotDeals.value =
+                UiState.Error(message)
+
+            _newReleases.value =
+                UiState.Error(message)
+        }
+    }
+    fun onGenreClick(genre: String) {
+
+        if (_selectedGenre.value == genre) {
+            refresh()
+        } else {
+            loadGamesByGenre(genre)
+        }
     }
 }

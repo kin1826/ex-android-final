@@ -106,36 +106,21 @@ data class OrderItemDto(
     val quantity: Int = 1,
 )
 
-data class LibraryGameDto(
+data class LibraryItemDto(
+    val id: Int,
+    val userId: Int,
+    val gameId: Int,
 
-    val id: Int = 0,
-
-    @SerializedName("user_id")
-    val user_id: Int = 0,
-
-    @SerializedName("game_id")
-    val game_id: Int = 0,
-
-    @SerializedName("purchase_date")
     val purchaseDate: String = "",
-
-    @SerializedName("is_favorite")
-    val is_favorite: Boolean = false,
-
-    @SerializedName("playtime_minutes")
+    val isFavorite: Boolean = false,
     val playtimeMinutes: Int = 0,
 
-    @SerializedName("last_played_at")
-    val lastPlayedAt: String? = null,
-
-    val title: String = "",
-
-    val genre: String = "",
-
-    @SerializedName("thumbnail_url")
+    val gameTitle: String,
+    val genre: String,
+    val price: Double,
     val thumbnailUrl: String = "",
-
-    val price: Double = 0.0
+    val description: String = "",
+    val discountPercent: Double = 0.0
 )
 
 

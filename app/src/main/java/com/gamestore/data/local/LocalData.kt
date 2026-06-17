@@ -145,21 +145,44 @@ data class LibraryEntity(
 @Dao
 interface LibraryDao {
 
-    @Query("SELECT * FROM libraries WHERE user_id = :uid ORDER BY purchase_date DESC")
+    @Query("""
+        SELECT *
+        FROM libraries
+        WHERE user_id = :uid
+        ORDER BY purchase_date DESC
+    """)
     fun getUserLibrary(uid: Int): Flow<List<LibraryEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: LibraryEntity)
 
-    @Query("SELECT COUNT(*) FROM libraries WHERE user_id = :uid")
-    fun getCount(uid: Int): Flow<Int>
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<LibraryEntity>)
 
-    @Query("DELETE FROM libraries WHERE user_id = :uid AND game_id = :gid")
+    @Query("""
+        DELETE FROM libraries
+        WHERE user_id = :uid
+    """)
+    suspend fun clearUserLibrary(uid: Int)
+
+    @Query("""
+        DELETE FROM libraries
+        WHERE user_id = :uid
+        AND game_id = :gid
+    """)
     suspend fun delete(uid: Int, gid: Int)
+
+    @Query("""
+        SELECT COUNT(*)
+        FROM libraries
+        WHERE user_id = :uid
+    """)
+    fun getCount(uid: Int): Flow<Int>
 }
+
 @Database(
-    entities  = [GameEntity::class, CartEntity::class],
-    version   = 2,
+    entities  = [GameEntity::class, CartEntity::class, LibraryEntity::class],
+    version   = 3,
     exportSchema = false
 )
 

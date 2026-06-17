@@ -1,6 +1,6 @@
 package com.gamestore.ui.screen.library
 
-import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -22,10 +23,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.gamestore.model.Game
+import com.gamestore.model.UiState
 import com.gamestore.ui.theme.*
 import com.gamestore.viewmodel.LibraryViewModel
-import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.OutlinedTextFieldDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,7 +37,9 @@ fun LibraryScreen(
 
     val state by vm.games.collectAsStateWithLifecycle()
 
-    var searchText by remember { mutableStateOf("") }
+    var searchText by remember {
+        mutableStateOf("")
+    }
 
     Scaffold(
         containerColor = DarkBg,
@@ -45,141 +47,244 @@ fun LibraryScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "🎮 Thư viện",
+                        text = "🎮 Thư viện",
                         color = TextPri,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, null, tint = TextPri)
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = null,
+                            tint = TextPri
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkSurf)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = DarkSurf
+                )
             )
         }
     ) { padding ->
 
-        when (state) {
+        when (val currentState = state) {
 
-            is com.gamestore.model.UiState.Loading -> {
+            is UiState.Loading -> {
+
                 Box(
-                    Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = PurpleLt)
+                    CircularProgressIndicator(
+                        color = PurpleLt
+                    )
                 }
             }
 
-            is com.gamestore.model.UiState.Error -> {
-                val msg = (state as com.gamestore.model.UiState.Error).message
+            is UiState.Error -> {
+
                 Box(
-                    Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(msg, color = TextMuted)
+                    Text(
+                        text = currentState.message,
+                        color = TextMuted
+                    )
                 }
             }
 
-            is com.gamestore.model.UiState.Success -> {
+            is UiState.Success -> {
 
-                val games = (state as com.gamestore.model.UiState.Success<List<Game>>).data
+                val games = currentState.data
 
-                val filtered = games.filter {
-                    it.title.contains(searchText, ignoreCase = true)
+                val filteredGames = games.filter {
+                    it.title.contains(
+                        searchText,
+                        ignoreCase = true
+                    )
                 }
 
-                LazyColumn(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
+                if (games.isEmpty()) {
 
-                    item {
-                        OutlinedTextField(
-                            value = searchText,
-                            onValueChange = { searchText = it },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = "Search"
-                                )
-                            },
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
 
-                            placeholder = {
-                                Text("Tìm game...")
-                            },
-
-                            singleLine = true,
-                            maxLines = 1,
-
-                            shape = RoundedCornerShape(12.dp),
-
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFFB026FF),
-                                unfocusedBorderColor = Color(0xFFB026FF),
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-
-                    items(filtered, key = { it.id }) { game ->
-
-                        Card(
-                            onClick = { onGameClick(game.id) },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = DarkCard),
-                            border = BorderStroke(0.5.dp, DarkBorder)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
 
-                            Row(
-                                Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                            Icon(
+                                imageVector = Icons.Default.SportsEsports,
+                                contentDescription = null,
+                                tint = TextMuted,
+                                modifier = Modifier.size(80.dp)
+                            )
 
-                                AsyncImage(
-                                    model = game.thumbnailUrl,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .size(80.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                )
+                            Spacer(
+                                modifier = Modifier.height(16.dp)
+                            )
 
-                                Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = "Chưa có game nào",
+                                color = TextPri,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            )
 
-                                Column(Modifier.weight(1f)) {
-                                    Text(game.title, color = TextPri, fontWeight = FontWeight.Bold)
-                                    Text(game.genre, color = TextMuted, fontSize = 12.sp)
+                            Spacer(
+                                modifier = Modifier.height(6.dp)
+                            )
 
-                                    Row {
-                                        Icon(
-                                            Icons.Default.SportsEsports,
-                                            null,
-                                            tint = PurpleLt
-                                        )
-                                        Spacer(Modifier.width(4.dp))
-                                        Text("Đã sở hữu", color = PurpleLt)
-                                    }
-                                }
-
-                                Button(onClick = { onGameClick(game.id) }) {
-                                    Text("Chơi")
-                                }
-                            }
+                            Text(
+                                text = "Hãy mua game để thêm vào thư viện",
+                                color = TextMuted
+                            )
                         }
                     }
 
-                    item { Spacer(Modifier.height(80.dp)) }
+                } else {
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+
+                        item {
+
+                            OutlinedTextField(
+                                value = searchText,
+                                onValueChange = {
+                                    searchText = it
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = null
+                                    )
+                                },
+                                placeholder = {
+                                    Text("Tìm game...")
+                                },
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFFB026FF),
+                                    unfocusedBorderColor = Color(0xFFB026FF),
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent
+                                )
+                            )
+
+                            Spacer(
+                                modifier = Modifier.height(12.dp)
+                            )
+                        }
+
+                        items(
+                            filteredGames,
+                            key = { it.id }
+                        ) { game ->
+
+                            Card(
+                                onClick = {
+                                    onGameClick(game.id)
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = DarkCard
+                                ),
+                                border = BorderStroke(
+                                    0.5.dp,
+                                    DarkBorder
+                                )
+                            ) {
+
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+
+                                    AsyncImage(
+                                        model = game.thumbnailUrl,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(80.dp)
+                                            .clip(
+                                                RoundedCornerShape(8.dp)
+                                            )
+                                    )
+
+                                    Spacer(
+                                        modifier = Modifier.width(12.dp)
+                                    )
+
+                                    Column(
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+
+                                        Text(
+                                            text = game.title,
+                                            color = TextPri,
+                                            fontWeight = FontWeight.Bold
+                                        )
+
+                                        Text(
+                                            text = game.genre,
+                                            color = TextMuted,
+                                            fontSize = 12.sp
+                                        )
+
+                                        Spacer(
+                                            modifier = Modifier.height(4.dp)
+                                        )
+
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+
+                                            Icon(
+                                                imageVector = Icons.Default.SportsEsports,
+                                                contentDescription = null,
+                                                tint = PurpleLt
+                                            )
+
+                                            Spacer(
+                                                modifier = Modifier.width(4.dp)
+                                            )
+
+                                            Text(
+                                                text = "Đã sở hữu",
+                                                color = PurpleLt
+                                            )
+                                        }
+                                    }
+
+                                    Button(
+                                        onClick = {
+                                            onGameClick(game.id)
+                                        }
+                                    ) {
+                                        Text("Chơi")
+                                    }
+                                }
+                            }
+                        }
+
+                        item {
+                            Spacer(
+                                modifier = Modifier.height(80.dp)
+                            )
+                        }
+                    }
                 }
             }
         }

@@ -72,13 +72,59 @@ if ($method === 'POST') {
     // Lưu từng item
     $resultItems = [];
     foreach ($orderItems as $oi) {
-        $gid = $oi['game']['id'];
-        $p   = $oi['price'];
-        $q   = $oi['quantity'];
-        $db->query("INSERT INTO order_items (order_id,game_id,price,quantity) VALUES ($orderId,$gid,$p,$q)");
 
+        $gid = (int)$oi['game']['id'];
+        $p   = (float)$oi['price'];
+        $q   = (int)$oi['quantity'];
+
+        $db->query("
+            INSERT INTO order_items (
+                order_id,
+                game_id,
+                price,
+                quantity
+            )
+            VALUES (
+                $orderId,
+                $gid,
+                $p,
+                $q
+            )
+        ");
+
+        // Kiểm tra user đã sở hữu game chưa
+        $checkLibrary = $db->query("
+            SELECT id
+            FROM libraries
+            WHERE user_id = $userId
+            AND game_id = $gid
+            LIMIT 1
+        ");
+
+        // Nếu chưa có thì thêm vào thư viện
+        if ($checkLibrary->num_rows == 0) {
+
+            $db->query("
+                INSERT INTO libraries (
+                    user_id,
+                    game_id,
+                    purchase_date,
+                    is_favorite,
+                    playtime_minutes,
+                    last_played_at
+                )
+                VALUES (
+                    $userId,
+                    $gid,
+                    NOW(),
+                    0,
+                    0,
+                    NULL
+                )
+            ");
+        }
         $resultItems[] = [
-            'gameId'        => (int)$gid,
+            'gameId'        => $gid,
             'gameTitle'     => $oi['game']['title'],
             'gameThumbnail' => $oi['game']['thumbnail_url'] ?? '',
             'price'         => $p,
@@ -101,7 +147,6 @@ if ($method === 'POST') {
     ]], 201);
 }
 
-// GET /api/orders?userId=1
 if ($method === 'GET') {
     $userId = (int)($_GET['userId'] ?? 0);
     $res    = $db->query("
