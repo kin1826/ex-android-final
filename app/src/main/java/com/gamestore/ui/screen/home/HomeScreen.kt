@@ -38,6 +38,7 @@ fun HomeScreen(
     val hotDeals    by vm.hotDeals.collectAsStateWithLifecycle()
     val newReleases by vm.newReleases.collectAsStateWithLifecycle()
     val categories  by vm.categories.collectAsStateWithLifecycle()
+    val selectedGenre by vm.selectedGenre.collectAsStateWithLifecycle()
     val cartCount   by vm.cartCount.collectAsStateWithLifecycle()
 
     Scaffold(
@@ -66,11 +67,24 @@ fun HomeScreen(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(categories) { cat ->
+                        items(categories, key = { it.id }) { cat ->
                             FilterChip(
-                                selected = false, onClick = {},
-                                label = { Text("${cat.iconEmoji} ${cat.name}", fontSize = 12.sp) },
-                                colors = FilterChipDefaults.filterChipColors(containerColor = DarkCard, labelColor = TextMuted),
+                                selected = selectedGenre == cat.name,
+                                onClick = {
+                                    vm.onGenreClick(cat.name)
+                                },
+                                label = {
+                                    Text(
+                                        "${cat.iconEmoji} ${cat.name}",
+                                        fontSize = 12.sp
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = PurpleLt,
+                                    selectedLabelColor = Color.White,
+                                    containerColor = DarkCard,
+                                    labelColor = TextMuted
+                                )
                             )
                         }
                     }
