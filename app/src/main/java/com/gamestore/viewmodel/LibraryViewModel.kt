@@ -64,34 +64,4 @@ class LibraryViewModel @Inject constructor(
             _isRefreshing.value = false
         }
     }
-
-    fun addToLibrary(game: Game) {
-        viewModelScope.launch {
-            libraryDao.insert(
-                game.toLibraryEntity(userId)
-            )
-        }
-    }
-
-    fun addGamesToLibrary(games: List<Game>) {
-        viewModelScope.launch {
-            libraryDao.insertAll(
-                games.map {
-                    it.toLibraryEntity(userId)
-                }
-            )
-        }
-    }
-
-    fun clearLibrary() {
-        viewModelScope.launch {
-            libraryDao.clearUserLibrary(userId)
-        }
-    }
-
-    fun removeGame(gameId: Int) {
-        viewModelScope.launch {
-            libraryDao.delete(userId, gameId)
-        }
-    }
 }

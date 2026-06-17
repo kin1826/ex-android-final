@@ -44,9 +44,7 @@ fun LibraryScreen(
         vm.syncLibrary()
     }
 
-    var searchText by remember {
-        mutableStateOf("")
-    }
+    var searchText by remember { mutableStateOf("") }
 
     Scaffold(
         containerColor = DarkBg,

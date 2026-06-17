@@ -28,6 +28,10 @@ class HomeViewModel @Inject constructor(
     private val _selectedGenre = MutableStateFlow<String?>(null)
     private val _isRefreshing  = MutableStateFlow(false)
 
+    private val _searchText = MutableStateFlow("")
+    private val _searchResult = MutableStateFlow<UiState<List<Game>>>(UiState.Success(emptyList()))
+
+
     val featured:    StateFlow<UiState<List<Game>>> = _featured.asStateFlow()
     val hotDeals:    StateFlow<UiState<List<Game>>> = _hotDeals.asStateFlow()
     val newReleases: StateFlow<UiState<List<Game>>> = _newReleases.asStateFlow()
@@ -35,6 +39,8 @@ class HomeViewModel @Inject constructor(
     val selectedGenre = _selectedGenre.asStateFlow()
     val isRefreshing  = _isRefreshing.asStateFlow()
 
+    val searchText = _searchText.asStateFlow()
+    val searchResult = _searchResult.asStateFlow()
     val cartCount: StateFlow<Int> = cartDao
         .getCount(tm.getUserId())
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
@@ -45,7 +51,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _isRefreshing.value = true
             _selectedGenre.value = null
-            
+
             // Chạy song song các task load
             val tasks = listOf(
                 loadFeatured(),
@@ -249,5 +255,39 @@ class HomeViewModel @Inject constructor(
         } else {
             loadGamesByGenre(genre)
         }
+    }
+    private fun searchGames(keyword: String) = viewModelScope.launch {
+
+        _searchResult.value = UiState.Loading
+
+        try {
+            val response = api.search(q = keyword)
+
+            if (response.isSuccessful && response.body()?.data != null) {
+
+                val games = response.body()!!
+                    .data!!
+                    .items
+                    .map { it.toModel() }
+
+                _searchResult.value = UiState.Success(games)
+
+            } else {
+                _searchResult.value = UiState.Success(emptyList())
+            }
+
+        } catch (e: Exception) {
+            _searchResult.value = UiState.Error(e.message ?: "Search error")
+        }
+    }
+    fun onSearchChange(text: String) {
+        _searchText.value = text
+
+        if (text.isBlank()) {
+            _searchResult.value = UiState.Success(emptyList())
+            return
+        }
+
+        searchGames(text)
     }
 }
