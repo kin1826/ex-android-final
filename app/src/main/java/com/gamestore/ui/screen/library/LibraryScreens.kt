@@ -37,9 +37,7 @@ fun LibraryScreen(
 
     val state by vm.games.collectAsStateWithLifecycle()
 
-    var searchText by remember {
-        mutableStateOf("")
-    }
+    var searchText by remember { mutableStateOf("") }
 
     Scaffold(
         containerColor = DarkBg,
