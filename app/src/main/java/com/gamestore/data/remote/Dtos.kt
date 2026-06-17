@@ -106,6 +106,24 @@ data class OrderItemDto(
     val quantity: Int = 1,
 )
 
+data class LibraryItemDto(
+    val id: Int,
+    val userId: Int,
+    val gameId: Int,
+
+    val purchaseDate: String = "",
+    val isFavorite: Boolean = false,
+    val playtimeMinutes: Int = 0,
+
+    val gameTitle: String,
+    val genre: String,
+    val price: Double,
+    val thumbnailUrl: String = "",
+    val description: String = "",
+    val discountPercent: Double = 0.0
+)
+
+
 data class AdminStatsDto(
     val totalUsers: Int = 0,
     val totalOrders: Int = 0,

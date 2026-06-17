@@ -28,11 +28,18 @@ class HomeViewModel @Inject constructor(
     private val _newReleases = MutableStateFlow<UiState<List<Game>>>(UiState.Loading)
     private val _categories  = MutableStateFlow<List<CategoryDto>>(emptyList())
     private val _filteredGames = MutableStateFlow<UiState<List<Game>>>(UiState.Success(emptyList()))
+    private val _selectedGenre = MutableStateFlow<String?>(null)
+    private val _searchText = MutableStateFlow("")
+    private val _searchResult = MutableStateFlow<UiState<List<Game>>>(UiState.Success(emptyList()))
+
 
     val featured:    StateFlow<UiState<List<Game>>> = _featured.asStateFlow()
     val hotDeals:    StateFlow<UiState<List<Game>>> = _hotDeals.asStateFlow()
     val newReleases: StateFlow<UiState<List<Game>>> = _newReleases.asStateFlow()
     val categories:  StateFlow<List<CategoryDto>>   = _categories.asStateFlow()
+    val selectedGenre = _selectedGenre.asStateFlow()
+    val searchText = _searchText.asStateFlow()
+    val searchResult = _searchResult.asStateFlow()
     val filteredGames: StateFlow<UiState<List<Game>>> = _filteredGames.asStateFlow()
 
     private val _selectedPriceRange = MutableStateFlow<PriceRange?>(null)
@@ -59,9 +66,13 @@ class HomeViewModel @Inject constructor(
     init { refresh() }
 
     fun refresh() {
+        _selectedGenre.value = null
         loadFeatured()
         loadHotDeals()
         loadNewReleases()
+        if (_categories.value.isEmpty()) {
+            loadCategories()
+        }
         loadCategories()
         applyFilters(debounce = false)
     }
@@ -101,10 +112,10 @@ class HomeViewModel @Inject constructor(
     }
 
     fun isFiltering(): Boolean {
-        return _selectedPriceRange.value != null || 
-               _sortBy.value != "newest" || 
-               _onlyDiscounted.value || 
-               _selectedCategory.value != null || 
+        return _selectedPriceRange.value != null ||
+               _sortBy.value != "newest" ||
+               _onlyDiscounted.value ||
+               _selectedCategory.value != null ||
                _searchQuery.value.isNotBlank()
     }
 
@@ -117,7 +128,7 @@ class HomeViewModel @Inject constructor(
             }
 
             if (debounce) delay(500)
-            
+
             _filteredGames.value = UiState.Loading
             try {
                 val range = _selectedPriceRange.value
@@ -131,7 +142,7 @@ class HomeViewModel @Inject constructor(
                 )
                 if (resp.isSuccessful) {
                     var items = resp.body()?.data?.items?.map { it.toModel() } ?: emptyList()
-                    
+
                     // Nếu backend chưa hỗ trợ lọc discount, ta lọc ở client
                     if (_onlyDiscounted.value) {
                         items = items.filter { it.hasDiscount }
@@ -160,6 +171,21 @@ class HomeViewModel @Inject constructor(
             val cached = gameDao.getFeatured().first()
             if (cached.isNotEmpty()) _featured.value = UiState.Success(cached.map { it.toModel() })
         }
+//        catch (e: Exception) {
+//            if (cached.isEmpty()) _featured.value = UiState.Error("Không có kết nối mạng")
+//        }
+        catch (e: Exception) {
+
+            e.printStackTrace()
+
+            if (cached.isEmpty()) {
+
+                _featured.value =
+                    UiState.Error(
+                        e.message ?: "Unknown error"
+                    )
+            }
+        }
     }
 
     private fun loadHotDeals() = viewModelScope.launch {
@@ -174,6 +200,21 @@ class HomeViewModel @Inject constructor(
         } catch (_: Exception) {
             val cached = gameDao.getHotDeals().first()
             if (cached.isNotEmpty()) _hotDeals.value = UiState.Success(cached.map { it.toModel() })
+        }
+//        catch (e: Exception) {
+//            if (cached.isEmpty()) _hotDeals.value = UiState.Error("Không có kết nối mạng")
+//        }
+        catch (e: Exception) {
+
+            e.printStackTrace()
+
+            if (cached.isEmpty()) {
+
+                _hotDeals.value =
+                    UiState.Error(
+                        e.message ?: "Unknown error"
+                    )
+            }
         }
     }
 
@@ -190,8 +231,22 @@ class HomeViewModel @Inject constructor(
             val cached = gameDao.getNewReleases().first()
             if (cached.isNotEmpty()) _newReleases.value = UiState.Success(cached.map { it.toModel() })
         }
-    }
+//        catch (e: Exception) {
+//            if (cached.isEmpty()) _newReleases.value = UiState.Error("Không có kết nối mạng")
+//        }
+        catch (e: Exception) {
 
+            e.printStackTrace()
+
+            if (cached.isEmpty()) {
+
+                _newReleases.value =
+                    UiState.Error(
+                        e.message ?: "Unknown error"
+                    )
+            }
+        }
+    }
     private fun loadCategories() = viewModelScope.launch {
         try {
             val resp = api.getCategories()
@@ -199,6 +254,125 @@ class HomeViewModel @Inject constructor(
                 _categories.value = resp.body()?.data ?: emptyList()
             }
         } catch (_: Exception) {}
+    }
+    fun loadGamesByGenre(
+        genre: String
+    ) = viewModelScope.launch {
+
+        _selectedGenre.value = genre
+
+        _featured.value = UiState.Loading
+        _hotDeals.value = UiState.Loading
+        _newReleases.value = UiState.Loading
+
+        try {
+
+            val response = api.getGames(
+                genre = genre,
+                page = 0,
+                size = 100
+            )
+
+            if (
+                response.isSuccessful &&
+                response.body()?.data?.items != null
+            ) {
+
+                val games =
+                    response.body()!!
+                        .data!!
+                        .items
+                        .map { it.toModel() }
+
+                _featured.value =
+                    UiState.Success(
+                        games.filter { game ->
+                            game.isFeatured
+                        }
+                    )
+
+                _hotDeals.value =
+                    UiState.Success(
+                        games.filter { game ->
+                            game.isHot
+                        }
+                    )
+
+                _newReleases.value =
+                    UiState.Success(
+                        games.filter { game ->
+                            game.isNew
+                        }
+                    )
+
+            } else {
+
+                _featured.value =
+                    UiState.Success(emptyList())
+
+                _hotDeals.value =
+                    UiState.Success(emptyList())
+
+                _newReleases.value =
+                    UiState.Success(emptyList())
+            }
+
+        } catch (e: Exception) {
+
+            val message =
+                e.message ?: "Lỗi tải dữ liệu"
+
+            _featured.value =
+                UiState.Error(message)
+
+            _hotDeals.value =
+                UiState.Error(message)
+
+            _newReleases.value =
+                UiState.Error(message)
+        }
+    }
+    fun onGenreClick(genre: String) {
+
+        if (_selectedGenre.value == genre) {
+            refresh()
+        } else {
+            loadGamesByGenre(genre)
+        }
+    }
+    private fun searchGames(keyword: String) = viewModelScope.launch {
+
+        _searchResult.value = UiState.Loading
+
+        try {
+            val response = api.search(q = keyword)
+
+            if (response.isSuccessful && response.body()?.data != null) {
+
+                val games = response.body()!!
+                    .data!!
+                    .items
+                    .map { it.toModel() }
+
+                _searchResult.value = UiState.Success(games)
+
+            } else {
+                _searchResult.value = UiState.Success(emptyList())
+            }
+
+        } catch (e: Exception) {
+            _searchResult.value = UiState.Error(e.message ?: "Search error")
+        }
+    }
+    fun onSearchChange(text: String) {
+        _searchText.value = text
+
+        if (text.isBlank()) {
+            _searchResult.value = UiState.Success(emptyList())
+            return
+        }
+
+        searchGames(text)
     }
 }
 
