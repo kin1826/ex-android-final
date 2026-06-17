@@ -41,10 +41,21 @@ interface GameApi {
         @Query("q") q: String,
     ): Response<ApiResponse<List<GameDto>>>
 
-    @GET("games.php")
-    suspend fun getCategories(
-        @Query("action") action: String = "categories"
-    ): Response<ApiResponse<List<CategoryDto>>>
+    @GET("categories.php")
+    suspend fun getCategories(): Response<ApiResponse<List<CategoryDto>>>
+
+    // ── ADMIN ──
+    @POST("games.php")
+    suspend fun addGame(@Body body: GameRequest): Response<ApiResponse<Int>>
+
+    @PUT("games.php")
+    suspend fun updateGame(@Body body: GameRequest): Response<ApiResponse<Unit>>
+
+    @DELETE("games.php")
+    suspend fun deleteGame(
+        @Query("id") id: Int,
+        @Query("adminId") adminId: Int
+    ): Response<ApiResponse<Unit>>
 }
 
 interface AuthApi {
@@ -85,4 +96,20 @@ interface UserApi {
         @Query("action") action: String = "deposit",
         @Body body: DepositRequest
     ): Response<ApiResponse<Map<String, Any>>>
+}
+
+interface AdminApi {
+    @GET("admin_stats.php")
+    suspend fun getStats(
+        @Query("adminId") adminId: Int
+    ): Response<ApiResponse<AdminStatsDto>>
+
+    @POST("categories.php")
+    suspend fun addCategory(@Body body: CategoryRequest): Response<ApiResponse<String>>
+
+    @DELETE("categories.php")
+    suspend fun deleteCategory(
+        @Query("id") id: Int,
+        @Query("adminId") adminId: Int
+    ): Response<ApiResponse<String>>
 }

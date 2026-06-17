@@ -68,7 +68,16 @@ if ($method === 'GET' && $action === 'categories') {
         LEFT JOIN games g ON g.genre = c.name
         GROUP BY c.id, c.name, c.icon
     ");
-    sendJSON(['success' => true, 'data' => fetchAll($res)]);
+    $list = [];
+    while($row = $res->fetch_assoc()) {
+        $list[] = [
+            'id' => (int)$row['id'],
+            'name' => $row['name'],
+            'iconEmoji' => $row['iconEmoji'] ?? '🎮',
+            'gameCount' => (int)$row['gameCount']
+        ];
+    }
+    sendJSON(['success' => true, 'data' => $list]);
 }
 
 // ── GET /api/games/search?q= ─────────────────────────────────
@@ -80,6 +89,7 @@ if ($method === 'GET' && $action === 'search') {
 
 // ── GET /api/games (danh sách có lọc) ────────────────────────
 if ($method === 'GET') {
+    // ... (giữ nguyên code cũ)
     $where  = '1=1';
     $genre  = $db->real_escape_string($_GET['genre']  ?? '');
     $search = $db->real_escape_string($_GET['search'] ?? '');
@@ -99,6 +109,60 @@ if ($method === 'GET') {
         'page'     => $page,
         'pageSize' => $size,
     ]]);
+}
+
+// ── QUẢN TRỊ VIÊN (POST/PUT/DELETE) ───────────────────────────
+$body = getBody();
+$adminId = (int)($body['adminId'] ?? $_GET['adminId'] ?? 0);
+
+// Hàm kiểm tra quyền Admin
+function checkAdmin($db, $id) {
+    if ($id <= 0) return false;
+    $res = $db->query("SELECT is_admin FROM users WHERE id = $id");
+    $u = $res->fetch_assoc();
+    return (bool)($u['is_admin'] ?? 0);
+}
+
+// Thêm Game (POST)
+if ($method === 'POST') {
+    if (!checkAdmin($db, $adminId)) sendJSON(['success' => false, 'message' => 'Bạn không có quyền'], 403);
+
+    $stmt = $db->prepare("INSERT INTO games (title, description, price, original_price, discount_percent, genre, developer, publisher, release_date, platforms, download_size, thumbnail_url, is_featured, is_hot, is_new) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+    $stmt->bind_param('ssddisssssssiii',
+        $body['title'], $body['description'], $body['price'], $body['originalPrice'],
+        $body['discountPercent'], $body['genre'], $body['developer'], $body['publisher'],
+        $body['releaseDate'], $body['platforms'], $body['downloadSize'], $body['thumbnailUrl'],
+        $body['isFeatured'], $body['isHot'], $body['isNew']
+    );
+
+    if ($stmt->execute()) sendJSON(['success' => true, 'message' => 'Thêm game thành công', 'id' => $db->insert_id]);
+    else sendJSON(['success' => false, 'message' => 'Lỗi: ' . $db->error], 500);
+}
+
+// Sửa Game (PUT)
+if ($method === 'PUT') {
+    if (!checkAdmin($db, $adminId)) sendJSON(['success' => false, 'message' => 'Bạn không có quyền'], 403);
+    $id = (int)$body['id'];
+
+    $stmt = $db->prepare("UPDATE games SET title=?, description=?, price=?, original_price=?, discount_percent=?, genre=?, developer=?, publisher=?, release_date=?, platforms=?, download_size=?, thumbnail_url=?, is_featured=?, is_hot=?, is_new=? WHERE id=?");
+    $stmt->bind_param('ssddisssssssiiii',
+        $body['title'], $body['description'], $body['price'], $body['originalPrice'],
+        $body['discountPercent'], $body['genre'], $body['developer'], $body['publisher'],
+        $body['releaseDate'], $body['platforms'], $body['downloadSize'], $body['thumbnailUrl'],
+        $body['isFeatured'], $body['isHot'], $body['isNew'], $id
+    );
+
+    if ($stmt->execute()) sendJSON(['success' => true, 'message' => 'Cập nhật thành công']);
+    else sendJSON(['success' => false, 'message' => 'Lỗi: ' . $db->error], 500);
+}
+
+// Xóa Game (DELETE)
+if ($method === 'DELETE') {
+    if (!checkAdmin($db, $adminId)) sendJSON(['success' => false, 'message' => 'Bạn không có quyền'], 403);
+    $id = (int)($_GET['id'] ?? 0);
+
+    if ($db->query("DELETE FROM games WHERE id = $id")) sendJSON(['success' => true, 'message' => 'Đã xóa game']);
+    else sendJSON(['success' => false, 'message' => 'Lỗi: ' . $db->error], 500);
 }
 
 // ── HELPERS ──────────────────────────────────────────────────
@@ -122,6 +186,10 @@ function formatGame($row) {
         'reviewCount'     => (int)$row['review_count'],
         'genre'           => $row['genre'] ?? '',
         'developer'       => $row['developer'] ?? '',
+        'publisher'       => $row['publisher'] ?? '',
+        'releaseDate'     => $row['release_date'] ?? '',
+        'platforms'       => $row['platforms'] ?? '',
+        'downloadSize'    => $row['download_size'] ?? '',
         'thumbnailUrl'    => $row['thumbnail_url'] ?? '',
         'bannerUrl'       => $row['banner_url'] ?? '',
         'isFeatured'      => (bool)$row['is_featured'],
