@@ -31,6 +31,7 @@ data class Game(
     val isHot: Boolean = false,
     val isNew: Boolean = false,
     val isOwned: Boolean = false,
+    val isFavorite: Boolean = false,
     val stock: Int = 999,
 ) : Parcelable {
     val finalPrice: Double

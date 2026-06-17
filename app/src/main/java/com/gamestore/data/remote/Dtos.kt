@@ -40,6 +40,7 @@ data class GameDto(
     @SerializedName("isHot")           val isHot: Boolean = false,
     @SerializedName("isNew")           val isNew: Boolean = false,
     @SerializedName("isOwned")         val isOwned: Boolean = false,
+    @SerializedName("isFavorite")      val isFavorite: Boolean = false,
     val stock: Int = 999,
 )
 
@@ -183,4 +184,13 @@ data class UserStatusUpdateRequest(
 data class GenericAdminRequest(
     val adminId: Int,
     val userId: Int
+)
+
+data class WishlistToggleRequest(
+    val userId: Int,
+    val gameId: Int
+)
+
+data class WishlistToggleResponse(
+    val isFavorite: Boolean
 )

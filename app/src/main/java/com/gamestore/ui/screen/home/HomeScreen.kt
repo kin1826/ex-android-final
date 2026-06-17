@@ -7,6 +7,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +42,12 @@ fun HomeScreen(
     val categories  by vm.categories.collectAsStateWithLifecycle()
     val selectedGenre by vm.selectedGenre.collectAsStateWithLifecycle()
     val cartCount   by vm.cartCount.collectAsStateWithLifecycle()
+    val isRefreshing by vm.isRefreshing.collectAsStateWithLifecycle()
+
+    // Tự động làm mới khi mở Trang chủ
+    LaunchedEffect(Unit) {
+        vm.refresh()
+    }
 
     Scaffold(
         containerColor = DarkBg,
@@ -59,53 +67,59 @@ fun HomeScreen(
             )
         }
     ) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { vm.refresh() },
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
+            LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
 
-            if (categories.isNotEmpty()) {
-                item {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(categories, key = { it.id }) { cat ->
-                            FilterChip(
-                                selected = selectedGenre == cat.name,
-                                onClick = {
-                                    vm.onGenreClick(cat.name)
-                                },
-                                label = {
-                                    Text(
-                                        "${cat.iconEmoji} ${cat.name}",
-                                        fontSize = 12.sp
+                if (categories.isNotEmpty()) {
+                    item {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(categories, key = { it.id }) { cat ->
+                                FilterChip(
+                                    selected = selectedGenre == cat.name,
+                                    onClick = {
+                                        vm.onGenreClick(cat.name)
+                                    },
+                                    label = {
+                                        Text(
+                                            "${cat.iconEmoji} ${cat.name}",
+                                            fontSize = 12.sp
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = PurpleLt,
+                                        selectedLabelColor = Color.White,
+                                        containerColor = DarkCard,
+                                        labelColor = TextMuted
                                     )
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = PurpleLt,
-                                    selectedLabelColor = Color.White,
-                                    containerColor = DarkCard,
-                                    labelColor = TextMuted
                                 )
-                            )
+                            }
                         }
                     }
                 }
-            }
 
-            item { SectionTitle("⭐ Nổi bật") }
-            item { GameRow(featured, onGameClick) }
-            item { SectionTitle("🔥 Giảm giá hot") }
-            item { GameRow(hotDeals, onGameClick) }
-            item { SectionTitle("🆕 Mới phát hành") }
+                item { SectionTitle("⭐ Nổi bật") }
+                item { GameRow(featured, onGameClick) }
+                item { SectionTitle("🔥 Giảm giá hot") }
+                item { GameRow(hotDeals, onGameClick) }
+                item { SectionTitle("🆕 Mới phát hành") }
 
-            when (val s = newReleases) {
-                is UiState.Success -> items(s.data, key = { it.id }) { game ->
-                    GameListItem(game, { onGameClick(game.id) }, Modifier.padding(horizontal = 16.dp, vertical = 3.dp))
+                when (val s = newReleases) {
+                    is UiState.Success -> items(s.data, key = { it.id }) { game ->
+                        GameListItem(game, { onGameClick(game.id) }, Modifier.padding(horizontal = 16.dp, vertical = 3.dp))
+                    }
+                    is UiState.Loading -> item { Box(Modifier.fillMaxWidth().height(80.dp), Alignment.Center) { CircularProgressIndicator(color = PurpleLt, modifier = Modifier.size(24.dp)) } }
+                    is UiState.Error   -> item { Text(s.message, color = TextMuted, modifier = Modifier.padding(16.dp)) }
                 }
-                is UiState.Loading -> item { Box(Modifier.fillMaxWidth().height(80.dp), Alignment.Center) { CircularProgressIndicator(color = PurpleLt, modifier = Modifier.size(24.dp)) } }
-                is UiState.Error   -> item { Text(s.message, color = TextMuted, modifier = Modifier.padding(16.dp)) }
-            }
 
-            item { Spacer(Modifier.height(80.dp)) }
+                item { Spacer(Modifier.height(80.dp)) }
+            }
         }
     }
 }

@@ -30,6 +30,7 @@ object R {
     const val SUCCESS = "success/{orderId}"
     const val ORDERS  = "orders"
     const val PROFILE = "profile"
+    const val WISHLIST = "wishlist"
     const val AUTH    = "auth"
     const val DEPOSIT = "deposit"
     const val ADMIN_GAMES = "admin_games"
@@ -107,8 +108,15 @@ fun AppNavigation() {
                 ProfileScreen(
                     onLoginClick = { nav.navigate(R.AUTH) },
                     onOrderHistoryClick = { nav.navigate(R.ORDERS) },
+                    onWishlistClick = { nav.navigate(R.WISHLIST) },
                     onDepositClick = { nav.navigate(R.DEPOSIT) },
                     onAdminClick = { nav.navigate(R.ADMIN_DASHBOARD) }
+                )
+            }
+            composable(R.WISHLIST) {
+                com.gamestore.ui.screen.profile.WishlistScreen(
+                    onBack = { nav.popBackStack() },
+                    onGameClick = { nav.navigate(R.detail(it)) }
                 )
             }
             composable(R.AUTH)    { AuthScreen(onSuccess = { nav.popBackStack() }) }

@@ -17,7 +17,7 @@ fun GameDto.toModel() = Game(
     thumbnailUrl = thumbnailUrl, bannerUrl = bannerUrl,
     screenshotUrls = screenshotUrls, videoUrl = videoUrl,
     isFeatured = isFeatured, isHot = isHot, isNew = isNew, stock = stock,
-    isOwned = isOwned,
+    isOwned = isOwned, isFavorite = isFavorite
 )
 
 fun GameDto.toEntity() = GameEntity(

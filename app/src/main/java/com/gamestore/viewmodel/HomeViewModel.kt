@@ -26,11 +26,15 @@ class HomeViewModel @Inject constructor(
     private val _newReleases = MutableStateFlow<UiState<List<Game>>>(UiState.Loading)
     private val _categories  = MutableStateFlow<List<CategoryDto>>(emptyList())
     private val _selectedGenre = MutableStateFlow<String?>(null)
+    private val _isRefreshing  = MutableStateFlow(false)
+
     val featured:    StateFlow<UiState<List<Game>>> = _featured.asStateFlow()
     val hotDeals:    StateFlow<UiState<List<Game>>> = _hotDeals.asStateFlow()
     val newReleases: StateFlow<UiState<List<Game>>> = _newReleases.asStateFlow()
     val categories:  StateFlow<List<CategoryDto>>   = _categories.asStateFlow()
     val selectedGenre = _selectedGenre.asStateFlow()
+    val isRefreshing  = _isRefreshing.asStateFlow()
+
     val cartCount: StateFlow<Int> = cartDao
         .getCount(tm.getUserId())
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
@@ -38,12 +42,19 @@ class HomeViewModel @Inject constructor(
     init { refresh() }
 
     fun refresh() {
-        _selectedGenre.value = null
-        loadFeatured()
-        loadHotDeals()
-        loadNewReleases()
-        if (_categories.value.isEmpty()) {
-            loadCategories()
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            _selectedGenre.value = null
+            
+            // Chạy song song các task load
+            val tasks = listOf(
+                loadFeatured(),
+                loadHotDeals(),
+                loadNewReleases(),
+                if (_categories.value.isEmpty()) loadCategories() else launch {}
+            )
+            kotlinx.coroutines.joinAll(*tasks.toTypedArray())
+            _isRefreshing.value = false
         }
     }
 

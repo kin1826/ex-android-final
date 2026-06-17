@@ -22,6 +22,8 @@ class LibraryViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val userId = tm.getUserId()
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
 
     init {
         syncLibrary()
@@ -44,34 +46,22 @@ class LibraryViewModel @Inject constructor(
                 initialValue = UiState.Loading
             )
 
-    fun syncLibrary() {
-        viewModelScope.launch {
-
-            try {
-
-                val response =
-                    libraryApi.getLibrary(userId)
-
-                if (
-                    response.isSuccessful &&
-                    response.body()?.success == true
-                ) {
-
-                    val items =
-                        response.body()?.data.orEmpty()
-
-                    libraryDao.clearUserLibrary(userId)
-
-                    libraryDao.insertAll(
-                        items.map {
-                            it.toLibraryEntity()
-                        }
-                    )
-                }
-
-            } catch (e: Exception) {
-                e.printStackTrace()
+    fun syncLibrary() = viewModelScope.launch {
+        val currentUserId = tm.getUserId()
+        if (currentUserId <= 0) return@launch
+        
+        _isRefreshing.value = true
+        try {
+            val response = libraryApi.getLibrary(currentUserId)
+            if (response.isSuccessful && response.body()?.success == true) {
+                val items = response.body()?.data.orEmpty()
+                libraryDao.clearUserLibrary(currentUserId)
+                libraryDao.insertAll(items.map { it.toLibraryEntity() })
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            _isRefreshing.value = false
         }
     }
 

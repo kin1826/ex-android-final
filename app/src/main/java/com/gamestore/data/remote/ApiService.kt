@@ -149,3 +149,15 @@ interface AdminApi {
         @Body body: UserStatusUpdateRequest
     ): Response<ApiResponse<Unit>>
 }
+
+interface WishlistApi {
+    @GET("wishlist.php")
+    suspend fun getWishlist(
+        @Query("userId") userId: Int
+    ): Response<ApiResponse<List<GameDto>>>
+
+    @POST("wishlist.php")
+    suspend fun toggleWishlist(
+        @Body body: WishlistToggleRequest
+    ): Response<ApiResponse<WishlistToggleResponse>>
+}

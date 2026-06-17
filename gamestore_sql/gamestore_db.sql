@@ -12,6 +12,14 @@
 
 SELECT * FROM users;
 SELECT * FROM categories;
+SELECT * FROM games;
+SELECT * FROM wishlists;
+-- Nếu có game mua từ trước thì bỏ Note đoạn này và chạy để Sync Game
+-- INSERT IGNORE INTO libraries (user_id, game_id, purchase_date)
+-- SELECT o.user_id, oi.game_id, o.created_at
+-- FROM orders o
+-- JOIN order_items oi ON o.id = oi.order_id
+-- WHERE o.status = 'COMPLETED';
 
 -- --------------------------------------------------
 -- Phần chính
