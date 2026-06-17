@@ -8,17 +8,20 @@ interface GameApi {
     // featured, hot-deals, new-releases đều trả về PagedData (có items bên trong)
     @GET("games.php")
     suspend fun getFeatured(
-        @Query("action") action: String = "featured"
+        @Query("action") action: String = "featured",
+        @Query("genre") genre: String? = null
     ): Response<ApiResponse<PagedData<GameDto>>>
 
     @GET("games.php")
     suspend fun getHotDeals(
-        @Query("action") action: String = "hot-deals"
+        @Query("action") action: String = "hot-deals",
+        @Query("genre") genre: String? = null
     ): Response<ApiResponse<PagedData<GameDto>>>
 
     @GET("games.php")
     suspend fun getNewReleases(
-        @Query("action") action: String = "new-releases"
+        @Query("action") action: String = "new-releases",
+        @Query("genre") genre: String? = null
     ): Response<ApiResponse<PagedData<GameDto>>>
 
     @GET("games.php")
@@ -82,6 +85,14 @@ interface OrderApi {
     suspend fun createOrder(
         @Body body: CreateOrderRequest
     ): Response<ApiResponse<OrderDto>>
+}
+
+interface LibraryApi {
+
+    @GET("libraries.php")
+    suspend fun getLibrary(
+        @Query("user_id") userId: Int
+    ): Response<ApiResponse<List<LibraryItemDto>>>
 }
 
 interface UserApi {

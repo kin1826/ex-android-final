@@ -1,6 +1,7 @@
 package com.gamestore.data.remote
 
 import com.gamestore.data.local.GameEntity
+import com.gamestore.data.local.LibraryEntity
 import com.gamestore.model.*
 
 fun GameDto.toModel() = Game(
@@ -52,3 +53,42 @@ fun OrderDto.toModel() = Order(
         )
     },
 )
+fun LibraryEntity.toGame(): Game =
+    Game(
+        id = gameId,
+        title = title,
+        description = "",
+        price = price,
+        originalPrice = price,
+        discountPercent = 0,
+        rating = 0f,
+        reviewCount = 0,
+        genre = genre,
+        developer = "",
+        thumbnailUrl = thumbnailUrl,
+        isFeatured = false,
+        isHot = false,
+        isNew = false,
+        stock = 0
+    )
+
+fun Game.toLibraryEntity(userId: Int): LibraryEntity =
+    LibraryEntity(
+        userId = userId,
+        gameId = id,
+        title = title,
+        genre = genre,
+        thumbnailUrl = thumbnailUrl,
+        price = price
+    )
+
+// API -> Room
+fun LibraryItemDto.toLibraryEntity(): LibraryEntity =
+    LibraryEntity(
+        userId = userId,
+        gameId = gameId,
+        title = gameTitle,
+        genre = genre,
+        thumbnailUrl = thumbnailUrl,
+        price = price
+    )

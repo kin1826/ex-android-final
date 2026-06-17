@@ -15,6 +15,7 @@ import com.gamestore.ui.screen.auth.AuthScreen
 import com.gamestore.ui.screen.cart.CartScreen
 import com.gamestore.ui.screen.detail.DetailScreen
 import com.gamestore.ui.screen.home.HomeScreen
+import com.gamestore.ui.screen.library.LibraryScreen
 import com.gamestore.ui.screen.order.OrderHistoryScreen
 import com.gamestore.ui.screen.order.OrderSuccessScreen
 import com.gamestore.ui.screen.profile.ProfileScreen
@@ -25,6 +26,7 @@ object R {
     const val HOME    = "home"
     const val DETAIL  = "detail/{gameId}"
     const val CART    = "cart"
+    const val LIBRARY = "library"
     const val SUCCESS = "success/{orderId}"
     const val ORDERS  = "orders"
     const val PROFILE = "profile"
@@ -48,6 +50,7 @@ fun AppNavigation() {
     val tabs = listOf(
         Triple(R.HOME,    "Trang chủ", Icons.Default.Home),
         Triple(R.CART,    "Giỏ hàng",  Icons.Default.ShoppingCart),
+        Triple(R.LIBRARY,    "Thư viện",  Icons.Default.SportsEsports),
         Triple(R.ORDERS,  "Đơn hàng",  Icons.Default.Receipt),
         Triple(R.PROFILE, "Tài khoản", Icons.Default.Person),
     )
@@ -90,22 +93,26 @@ fun AppNavigation() {
             composable(R.CART) {
                 CartScreen(onBack = { nav.popBackStack() }, onOrderSuccess = { nav.navigate(R.success(it)) { popUpTo(R.CART) { inclusive = true } } })
             }
+            composable(R.LIBRARY) {
+                LibraryScreen(onGameClick = { nav.navigate(R.detail(it)) }, onBack = { nav.popBackStack() })
+            }
+
             composable(R.SUCCESS, listOf(navArgument("orderId") { type = NavType.IntType })) { back ->
                 val id = back.arguments?.getInt("orderId") ?: 0
                 OrderSuccessScreen(id, onGoHome = { nav.navigate(R.HOME) { popUpTo(0) { inclusive = true } } }, onViewOrders = { nav.navigate(R.ORDERS) { popUpTo(R.HOME) } })
             }
             composable(R.ORDERS)  { OrderHistoryScreen(onBack = { nav.popBackStack() }) }
-            composable(R.PROFILE) { 
+            composable(R.PROFILE) {
                 ProfileScreen(
-                    onLoginClick = { nav.navigate(R.AUTH) }, 
+                    onLoginClick = { nav.navigate(R.AUTH) },
                     onOrderHistoryClick = { nav.navigate(R.ORDERS) },
                     onDepositClick = { nav.navigate(R.DEPOSIT) },
                     onAdminClick = { nav.navigate(R.ADMIN_DASHBOARD) }
-                ) 
+                )
             }
             composable(R.AUTH)    { AuthScreen(onSuccess = { nav.popBackStack() }) }
-            composable(R.DEPOSIT) { 
-                com.gamestore.ui.screen.profile.DepositScreen(onBack = { nav.popBackStack() }) 
+            composable(R.DEPOSIT) {
+                com.gamestore.ui.screen.profile.DepositScreen(onBack = { nav.popBackStack() })
             }
             composable(R.ADMIN_DASHBOARD) {
                 com.gamestore.ui.screen.admin.AdminDashboardScreen(
