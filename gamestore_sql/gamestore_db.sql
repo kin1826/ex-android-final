@@ -299,3 +299,4 @@ ALTER TABLE games ADD COLUMN publisher VARCHAR(255) AFTER developer;
 ALTER TABLE games ADD COLUMN release_date VARCHAR(50) AFTER publisher;
 ALTER TABLE games ADD COLUMN platforms VARCHAR(255) AFTER release_date;
 ALTER TABLE games ADD COLUMN download_size VARCHAR(50) AFTER platforms;
+ALTER TABLE users ADD COLUMN is_active TINYINT(1) DEFAULT 1 AFTER is_admin;

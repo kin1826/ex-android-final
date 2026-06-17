@@ -8,9 +8,13 @@ import com.gamestore.data.remote.CategoryDto
 import com.gamestore.data.remote.CategoryRequest
 import com.gamestore.data.remote.GameApi
 import com.gamestore.data.remote.GameRequest
+import com.gamestore.data.remote.GenericAdminRequest
+import com.gamestore.data.remote.UserStatusUpdateRequest
+import com.gamestore.data.remote.WalletUpdateRequest
 import com.gamestore.data.remote.toModel
 import com.gamestore.model.Game
 import com.gamestore.model.UiState
+import com.gamestore.model.User
 import com.gamestore.util.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +41,9 @@ class AdminViewModel @Inject constructor(
     private val _allCategories = MutableStateFlow<UiState<List<CategoryDto>>>(UiState.Loading)
     val allCategories = _allCategories.asStateFlow()
 
+    private val _allUsers = MutableStateFlow<UiState<List<User>>>(UiState.Loading)
+    val allUsers = _allUsers.asStateFlow()
+
     fun loadAllCategories() = viewModelScope.launch {
         _allCategories.value = UiState.Loading
         try {
@@ -46,6 +53,66 @@ class AdminViewModel @Inject constructor(
                 _allCategories.value = UiState.Success(resp.body()?.data ?: emptyList())
             }
         } catch (e: Exception) { _allCategories.value = UiState.Error("Lỗi kết nối") }
+    }
+
+    fun loadAllUsers(query: String? = null) = viewModelScope.launch {
+        _allUsers.value = UiState.Loading
+        try {
+            val resp = adminApi.getUsers(tm.getUserId(), query)
+            if (resp.isSuccessful && resp.body()?.data != null) {
+                _allUsers.value = UiState.Success(resp.body()!!.data!!.map { it.toModel() })
+            } else {
+                _allUsers.value = UiState.Error(resp.body()?.message ?: "Lỗi tải danh sách người dùng")
+            }
+        } catch (e: Exception) {
+            _allUsers.value = UiState.Error("Lỗi kết nối: ${e.message}")
+        }
+    }
+
+    fun updateWallet(userId: Int, amount: Double) = viewModelScope.launch {
+        _state.value = UiState.Loading
+        try {
+            val req = WalletUpdateRequest(tm.getUserId(), userId, amount)
+            val resp = adminApi.updateWallet(body = req)
+            if (resp.isSuccessful) {
+                _state.value = UiState.Success("Đã cập nhật số dư ví")
+                loadAllUsers()
+            } else {
+                _state.value = UiState.Error(resp.body()?.message ?: "Thất bại")
+            }
+        } catch (e: Exception) { _state.value = UiState.Error("Lỗi kết nối") }
+    }
+
+    fun resetPassword(userId: Int) = viewModelScope.launch {
+        _state.value = UiState.Loading
+        try {
+            val req = GenericAdminRequest(tm.getUserId(), userId)
+            val resp = adminApi.resetPassword(body = req)
+            if (resp.isSuccessful) {
+                _state.value = UiState.Success("Mật khẩu đã đặt lại về 123456")
+            } else {
+                _state.value = UiState.Error(resp.body()?.message ?: "Thất bại")
+            }
+        } catch (e: Exception) { _state.value = UiState.Error("Lỗi kết nối") }
+    }
+
+    fun updateUserStatus(userId: Int, isAdmin: Boolean? = null, isActive: Boolean? = null) = viewModelScope.launch {
+        _state.value = UiState.Loading
+        try {
+            val req = UserStatusUpdateRequest(
+                adminId = tm.getUserId(),
+                userId = userId,
+                isAdmin = isAdmin?.let { if (it) 1 else 0 },
+                isActive = isActive?.let { if (it) 1 else 0 }
+            )
+            val resp = adminApi.updateUserStatus(body = req)
+            if (resp.isSuccessful) {
+                _state.value = UiState.Success("Đã cập nhật trạng thái người dùng")
+                loadAllUsers()
+            } else {
+                _state.value = UiState.Error(resp.body()?.message ?: "Thất bại")
+            }
+        } catch (e: Exception) { _state.value = UiState.Error("Lỗi kết nối") }
     }
 
     fun addCategory(name: String, icon: String) = viewModelScope.launch {

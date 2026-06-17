@@ -72,6 +72,7 @@ data class UserDto(
     val points: Int = 0,
     val membershipLevel: String = "BRONZE",
     val isAdmin: Boolean = false,
+    val isActive: Boolean = true,
 )
 
 data class CreateOrderRequest(
@@ -146,4 +147,22 @@ data class GameRequest(
     val isFeatured: Int,
     val isHot: Int,
     val isNew: Int
+)
+
+data class WalletUpdateRequest(
+    val adminId: Int,
+    val userId: Int,
+    val amount: Double
+)
+
+data class UserStatusUpdateRequest(
+    val adminId: Int,
+    val userId: Int,
+    val isAdmin: Int? = null,
+    val isActive: Int? = null
+)
+
+data class GenericAdminRequest(
+    val adminId: Int,
+    val userId: Int
 )

@@ -33,6 +33,7 @@ object R {
     const val ADMIN_GAMES = "admin_games"
     const val ADMIN_EDIT_GAME = "admin_edit_game"
     const val ADMIN_CATEGORIES = "admin_categories"
+    const val ADMIN_USERS = "admin_users"
     const val ADMIN_DASHBOARD = "admin_dashboard"
     fun detail(id: Int)   = "detail/$id"
     fun success(id: Int)  = "success/$id"
@@ -51,7 +52,7 @@ fun AppNavigation() {
         Triple(R.ORDERS,  "Đơn hàng",  Icons.Default.Receipt),
         Triple(R.PROFILE, "Tài khoản", Icons.Default.Person),
     )
-    val noBar = setOf("detail/", "success/", R.AUTH, R.DEPOSIT, R.ADMIN_GAMES, R.ADMIN_DASHBOARD, R.ADMIN_CATEGORIES, R.ADMIN_EDIT_GAME)
+    val noBar = setOf("detail/", "success/", R.AUTH, R.DEPOSIT, R.ADMIN_GAMES, R.ADMIN_DASHBOARD, R.ADMIN_CATEGORIES, R.ADMIN_EDIT_GAME, R.ADMIN_USERS)
     val showBar = noBar.none { route?.startsWith(it.trimEnd('/')) == true }
 
     Scaffold(
@@ -111,7 +112,8 @@ fun AppNavigation() {
                 com.gamestore.ui.screen.admin.AdminDashboardScreen(
                     onBack = { nav.popBackStack() },
                     onManageGames = { nav.navigate(R.ADMIN_GAMES) },
-                    onManageCategories = { nav.navigate(R.ADMIN_CATEGORIES) }
+                    onManageCategories = { nav.navigate(R.ADMIN_CATEGORIES) },
+                    onManageUsers = { nav.navigate(R.ADMIN_USERS) }
                 )
             }
             composable(R.ADMIN_CATEGORIES) {
@@ -136,6 +138,9 @@ fun AppNavigation() {
                     game = game,
                     onBack = { nav.popBackStack() }
                 )
+            }
+            composable(R.ADMIN_USERS) {
+                com.gamestore.ui.screen.admin.AdminUserScreen(onBack = { nav.popBackStack() })
             }
         }
     }

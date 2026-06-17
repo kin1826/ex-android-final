@@ -80,6 +80,7 @@ data class User(
     val points: Int = 0,
     val membershipLevel: String = "BRONZE",
     val isAdmin: Boolean = false,
+    val isActive: Boolean = true,
 )
 
 data class Order(

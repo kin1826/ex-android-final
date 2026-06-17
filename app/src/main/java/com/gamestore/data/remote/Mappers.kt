@@ -38,6 +38,7 @@ fun UserDto.toModel() = User(
     walletBalance = walletBalance, points = points,
     membershipLevel = membershipLevel,
     isAdmin = isAdmin,
+    isActive = isActive,
 )
 
 fun OrderDto.toModel() = Order(
