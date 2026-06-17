@@ -8,7 +8,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +27,6 @@ import com.gamestore.ui.theme.*
 import com.gamestore.util.toVND
 import com.gamestore.viewmodel.HomeViewModel
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -43,16 +41,15 @@ fun HomeScreen(
     val selectedGenre by vm.selectedGenre.collectAsStateWithLifecycle()
     val cartCount   by vm.cartCount.collectAsStateWithLifecycle()
     val isRefreshing by vm.isRefreshing.collectAsStateWithLifecycle()
+    val searchText by vm.searchText.collectAsStateWithLifecycle()
+    val searchResult by vm.searchResult.collectAsStateWithLifecycle()
+
+    val isSearching = searchText.isNotBlank()
 
     // Tự động làm mới khi mở Trang chủ
     LaunchedEffect(Unit) {
         vm.refresh()
     }
-
-    val searchText by vm.searchText.collectAsStateWithLifecycle()
-    val searchResult by vm.searchResult.collectAsStateWithLifecycle()
-
-    val isSearching = searchText.isNotBlank()
 
     Scaffold(
         containerColor = DarkBg,
@@ -63,13 +60,13 @@ fun HomeScreen(
                         "⚡ GAMESTORE",
                         fontWeight = FontWeight.ExtraBold,
                         color = PurpleLt,
-                        fontSize = 20.sp
+                        fontSize = 20.sp,
+                        letterSpacing = 1.sp
                     )
                 },
                 actions = {
                     BadgedBox(badge = {
-                        if (cartCount > 0)
-                            Badge(containerColor = RedColor) { Text("$cartCount") }
+                        if (cartCount > 0) Badge(containerColor = RedColor) { Text("$cartCount") }
                     }) {
                         IconButton(onClick = onCartClick) {
                             Icon(Icons.Default.ShoppingCart, null, tint = TextPri)
@@ -85,187 +82,107 @@ fun HomeScreen(
             onRefresh = { vm.refresh() },
             modifier = Modifier.fillMaxSize().padding(padding)
         ) {
-            LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-
-            // ================= SEARCH =================
-            item {
-                Spacer(Modifier.height(25.dp))
-
-                OutlinedTextField(
-                    value = searchText,
-                    onValueChange = { vm.onSearchChange(it) },
-
-                    leadingIcon = {
-                        Icon(Icons.Default.Search, null)
-                    },
-
-                    trailingIcon = {
-                        if (searchText.isNotBlank()) {
-                            IconButton(onClick = {
-                                vm.onSearchChange("")
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Clear"
-                                )
-                            }
-                        }
-                    },
-                    placeholder = { Text("Tìm game...") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFFB026FF),
-                        unfocusedBorderColor = Color(0xFFB026FF),
-                        focusedTextColor = TextPri,
-                        unfocusedTextColor = TextPri
-                    )
-                )
-
-                Spacer(Modifier.height(10.dp))
-            }
-
-            // ================= SEARCH MODE =================
-            if (isSearching) {
-
-                when (searchResult) {
-
-                    is UiState.Loading -> {
-                        item {
-                            Box(
-                                Modifier.fillMaxWidth().height(120.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(color = PurpleLt)
-                            }
-                        }
-                    }
-
-                    is UiState.Error -> {
-                        item {
-                            Text(
-                                text = (searchResult as UiState.Error).message,
-                                color = TextMuted,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
-                    }
-
-                    is UiState.Success -> {
-                        val data = (searchResult as UiState.Success<List<Game>>).data
-
-                        if (data.isEmpty()) {
-                            item {
-                                Text(
-                                    "Không tìm thấy game",
-                                    color = TextMuted,
-                                    modifier = Modifier.padding(16.dp)
-                                )
-                            }
-                        } else {
-                            items(data, key = { it.id }) { game ->
-                                GameListItem(
-                                    game,
-                                    { onGameClick(game.id) },
-                                    Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
-            } else {
-
-                // ================= NORMAL HOME =================
-
-                if (categories.isNotEmpty()) {
-                    item {
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            items(categories, key = { it.id }) { cat ->
-                                FilterChip(
-                                    selected = selectedGenre == cat.name,
-                                    onClick = {
-                                        vm.onGenreClick(cat.name)
-                                    },
-                                    label = {
-                                        Text(
-                                            "${cat.iconEmoji} ${cat.name}",
-                                            fontSize = 12.sp
-                                        )
-                                    },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = PurpleLt,
-                                        selectedLabelColor = Color.White,
-                                        containerColor = DarkCard,
-                                        labelColor = TextMuted
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-                if (categories.isNotEmpty()) {
-                    item {
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(categories, key = { it.id }) { cat ->
-                                FilterChip(
-                                    selected = selectedGenre == cat.name,
-                                    onClick = { vm.onGenreClick(cat.name) },
-                                    label = { Text("${cat.iconEmoji} ${cat.name}") }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item { SectionTitle("⭐ Nổi bật") }
-                item { GameRow(featured, onGameClick) }
-
-                item { SectionTitle("🔥 Giảm giá hot") }
-                item { GameRow(hotDeals, onGameClick) }
-
-                item { SectionTitle("🆕 Mới phát hành") }
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // ================= SEARCH BOX =================
                 item {
-                    when (val s = newReleases) {
-                        is UiState.Success ->
-                            s.data.forEach { game ->
-                                GameListItem(
-                                    game,
-                                    { onGameClick(game.id) },
-                                    Modifier.padding(horizontal = 16.dp, vertical = 3.dp)
-                                )
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = searchText,
+                        onValueChange = { vm.onSearchChange(it) },
+                        leadingIcon = { Icon(Icons.Default.Search, null) },
+                        trailingIcon = {
+                            if (isSearching) {
+                                IconButton(onClick = { vm.onSearchChange("") }) {
+                                    Icon(Icons.Default.Close, "Clear")
+                                }
                             }
+                        },
+                        placeholder = { Text("Tìm game...") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PurpleLt,
+                            unfocusedBorderColor = DarkBorder,
+                            focusedContainerColor = DarkCard,
+                            unfocusedContainerColor = DarkCard
+                        )
+                    )
+                    Spacer(Modifier.height(10.dp))
+                }
 
-                        is UiState.Loading ->
-                            Box(Modifier.fillMaxWidth(), Alignment.Center) {
+                if (isSearching) {
+                    // ================= SEARCH MODE =================
+                    when (val res = searchResult) {
+                        is UiState.Loading -> item {
+                            Box(Modifier.fillMaxWidth().height(150.dp), Alignment.Center) {
                                 CircularProgressIndicator(color = PurpleLt)
                             }
+                        }
+                        is UiState.Error -> item {
+                            Text(res.message, color = TextMuted, modifier = Modifier.padding(16.dp))
+                        }
+                        is UiState.Success -> {
+                            if (res.data.isEmpty()) {
+                                item {
+                                    Text("Không tìm thấy game phù hợp", color = TextMuted, modifier = Modifier.padding(16.dp))
+                                }
+                            } else {
+                                items(res.data, key = { it.id }) { game ->
+                                    GameListItem(game, { onGameClick(game.id) }, Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // ================= NORMAL MODE =================
+                    if (categories.isNotEmpty()) {
+                        item {
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                items(categories, key = { it.id }) { cat ->
+                                    FilterChip(
+                                        selected = selectedGenre == cat.name,
+                                        onClick = { vm.onGenreClick(cat.name) },
+                                        label = { Text("${cat.iconEmoji} ${cat.name}", fontSize = 12.sp) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = PurpleLt,
+                                            selectedLabelColor = Color.White,
+                                            containerColor = DarkCard,
+                                            labelColor = TextMuted
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
 
-                        is UiState.Error ->
-                            Text(
-                                s.message,
-                                color = TextMuted,
-                                modifier = Modifier.padding(16.dp)
-                            )
+                    item { SectionTitle("⭐ Nổi bật") }
+                    item { GameRow(featured, onGameClick) }
+
+                    item { SectionTitle("🔥 Giảm giá hot") }
+                    item { GameRow(hotDeals, onGameClick) }
+
+                    item { SectionTitle("🆕 Mới phát hành") }
+                    when (val s = newReleases) {
+                        is UiState.Success -> items(s.data, key = { it.id }) { game ->
+                            GameListItem(game, { onGameClick(game.id) }, Modifier.padding(horizontal = 16.dp, vertical = 3.dp))
+                        }
+                        is UiState.Loading -> item {
+                            Box(Modifier.fillMaxWidth().height(100.dp), Alignment.Center) {
+                                CircularProgressIndicator(color = PurpleLt, modifier = Modifier.size(30.dp))
+                            }
+                        }
+                        is UiState.Error -> item {
+                            Text(s.message, color = TextMuted, modifier = Modifier.padding(16.dp))
+                        }
                     }
                 }
-            }
 
                 item { Spacer(Modifier.height(80.dp)) }
             }
@@ -294,24 +211,19 @@ fun GameRow(state: UiState<List<Game>>, onClick: (Int) -> Unit) {
 fun GameCard(game: Game, onClick: () -> Unit) {
     Card(
         onClick  = onClick,
-        modifier = Modifier.width(160.dp),  // tăng width
+        modifier = Modifier.width(160.dp).height(240.dp), // Tăng chiều cao để thoải mái hơn
         shape    = RoundedCornerShape(12.dp),
         colors   = CardDefaults.cardColors(containerColor = DarkCard),
         border   = BorderStroke(0.5.dp, DarkBorder),
     ) {
-        Column {
+        Column(Modifier.fillMaxSize()) {
             Box {
                 AsyncImage(
-                    model              = game.thumbnailUrl.ifBlank {
-                        "https://placehold.co/200x120/1A1A2E/A855F7?text=${game.title}"
-                    },
+                    model              = game.thumbnailUrl.ifBlank { "https://placehold.co/200x120/1A1A2E/A855F7?text=${game.title}" },
                     contentDescription = game.title,
                     contentScale       = ContentScale.Crop,
-                    modifier           = Modifier
-                        .fillMaxWidth()
-                        .height(110.dp),  // chiều cao ảnh rõ ràng hơn
+                    modifier           = Modifier.fillMaxWidth().height(110.dp),
                 )
-                // Badge giảm giá
                 if (game.hasDiscount) {
                     Surface(
                         modifier = Modifier.align(Alignment.TopEnd).padding(5.dp),
@@ -327,29 +239,32 @@ fun GameCard(game: Game, onClick: () -> Unit) {
                         )
                     }
                 }
-                // Badge Hot
                 if (game.isHot) {
                     Surface(
                         modifier = Modifier.align(Alignment.TopStart).padding(5.dp),
                         color    = Color(0xFFF97316),
                         shape    = RoundedCornerShape(4.dp),
                     ) {
-                        Text("🔥 Hot", fontSize = 9.sp,
+                        Text("🔥 Hot", fontSize = 9.sp, color = Color.White,
                             modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
                     }
                 }
             }
-            Column(Modifier.padding(10.dp)) {
+            Column(Modifier.padding(10.dp).weight(1f)) {
                 Text(
                     game.title,
                     fontWeight = FontWeight.SemiBold,
                     color      = TextPri,
-                    maxLines   = 1,
+                    maxLines   = 2, // Cho phép hiển thị 2 dòng tiêu đề
                     overflow   = TextOverflow.Ellipsis,
                     fontSize   = 13.sp,
+                    lineHeight = 16.sp
                 )
-                Text(game.genre, color = TextMuted, fontSize = 11.sp)
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(2.dp))
+                Text(game.genre, color = TextMuted, fontSize = 11.sp, maxLines = 1)
+                
+                Spacer(Modifier.weight(1f))
+                
                 Row(
                     Modifier.fillMaxWidth(),
                     Arrangement.SpaceBetween,
@@ -385,12 +300,12 @@ fun GameCard(game: Game, onClick: () -> Unit) {
 fun GameListItem(game: Game, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(onClick = onClick, modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = DarkCard), border = BorderStroke(0.5.dp, DarkBorder)) {
-        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(10.dp).height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(model = game.thumbnailUrl.ifBlank { "https://placehold.co/70x70/1A1A2E/white?text=🎮" },
                 contentDescription = null, contentScale = ContentScale.Crop,
                 modifier = Modifier.size(70.dp).clip(RoundedCornerShape(8.dp)))
             Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
+            Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.Center) {
                 Text(game.title, fontWeight = FontWeight.SemiBold, color = TextPri, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(game.genre, color = TextMuted, fontSize = 12.sp)
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -398,7 +313,7 @@ fun GameListItem(game: Game, onClick: () -> Unit, modifier: Modifier = Modifier)
                     Text(" %.1f".format(game.rating), fontSize = 11.sp, color = TextMuted)
                 }
             }
-            Column(horizontalAlignment = Alignment.End) {
+            Column(modifier = Modifier.fillMaxHeight(), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.Center) {
                 if (game.hasDiscount) Text(game.originalPrice.toVND(), fontSize = 10.sp, color = TextMuted, textDecoration = TextDecoration.LineThrough)
                 Text(game.finalPrice.toVND(), fontWeight = FontWeight.Bold, color = PurpleLt)
             }
@@ -417,13 +332,5 @@ fun SkeletonCard() {
                 Box(Modifier.fillMaxWidth(0.6f).height(14.dp).clip(RoundedCornerShape(4.dp)).background(DarkBorder))
             }
         }
-    }
-}
-fun List<Game>.filterBySearch(query: String): List<Game> {
-    if (query.isBlank()) return this
-
-    return filter {
-        it.title.contains(query, ignoreCase = true) ||
-                it.genre.contains(query, ignoreCase = true)
     }
 }

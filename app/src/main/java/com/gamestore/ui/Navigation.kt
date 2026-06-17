@@ -85,7 +85,11 @@ fun AppNavigation() {
             }
         }
     ) { padding ->
-        NavHost(nav, R.HOME, Modifier.padding(padding)) {
+        NavHost(
+            navController = nav,
+            startDestination = R.HOME,
+            modifier = Modifier.padding(bottom = padding.calculateBottomPadding())
+        ) {
             composable(R.HOME) {
                 HomeScreen(onGameClick = { nav.navigate(R.detail(it)) }, onCartClick = { nav.navigate(R.CART) })
             }

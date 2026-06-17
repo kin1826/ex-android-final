@@ -9,8 +9,8 @@ import com.gamestore.data.remote.*
 import com.gamestore.model.*
 import com.gamestore.util.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -59,7 +59,7 @@ class HomeViewModel @Inject constructor(
                 loadNewReleases(),
                 if (_categories.value.isEmpty()) loadCategories() else launch {}
             )
-            kotlinx.coroutines.joinAll(*tasks.toTypedArray())
+            joinAll(*tasks.toTypedArray())
             _isRefreshing.value = false
         }
     }
@@ -257,25 +257,17 @@ class HomeViewModel @Inject constructor(
         }
     }
     private fun searchGames(keyword: String) = viewModelScope.launch {
-
         _searchResult.value = UiState.Loading
-
         try {
             val response = api.search(q = keyword)
-
-            if (response.isSuccessful && response.body()?.data != null) {
-
-                val games = response.body()!!
-                    .data!!
-                    .items
-                    .map { it.toModel() }
-
+            val body = response.body()
+            if (response.isSuccessful && body?.data != null) {
+                // PagedData trả về danh sách nằm trong trường items
+                val games = body.data!!.items.map { it.toModel() }
                 _searchResult.value = UiState.Success(games)
-
             } else {
                 _searchResult.value = UiState.Success(emptyList())
             }
-
         } catch (e: Exception) {
             _searchResult.value = UiState.Error(e.message ?: "Search error")
         }
