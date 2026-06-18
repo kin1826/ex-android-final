@@ -5,19 +5,16 @@ $db     = getDB();
 $method = $_SERVER['REQUEST_METHOD'];
 $uri    = $_SERVER['REQUEST_URI'];
 
-// Lấy path cuối: /api/games/featured → "featured"
 $parts  = explode('/', trim(parse_url($uri, PHP_URL_PATH), '/'));
 $lastPart = end($parts);
 
-// Ưu tiên lấy action từ Query String, nếu không có mới lấy từ Path
 $action = $_GET['action'] ?? $lastPart;
 $idFromQuery = $_GET['id'] ?? 0;
 
-// ── GET /api/games/{id} ──────────────────────────────────────
+// GET Single Game
 if ($method === 'GET' && ($idFromQuery > 0 || is_numeric($action))) {
     $id  = $idFromQuery > 0 ? (int)$idFromQuery : (int)$action;
     $userId = (int)($_GET['userId'] ?? 0);
-
     $res = $db->query("SELECT * FROM games WHERE id = $id LIMIT 1");
     $row = $res->fetch_assoc();
     if (!$row) sendJSON(['success' => false, 'message' => 'Không tìm thấy game'], 404);
@@ -46,19 +43,25 @@ if ($method === 'GET' && ($idFromQuery > 0 || is_numeric($action))) {
     sendJSON(['success' => true, 'data' => $gameData]);
 }
 
-// ── GET /api/games/featured ──────────────────────────────────
+// GET Featured
 if ($method === 'GET' && $action === 'featured') {
-    $res = $db->query("SELECT * FROM games WHERE is_featured = 1 ORDER BY rating DESC");
+    $genre = $db->real_escape_string($_GET['genre'] ?? '');
+    $where = "is_featured = 1";
+    if ($genre) $where .= " AND genre = '$genre'";
+    $res = $db->query("SELECT * FROM games WHERE $where ORDER BY rating DESC");
     sendJSON(['success' => true, 'data' => ['items' => fetchAll($res)]]);
 }
 
-// ── GET /api/games/hot-deals ─────────────────────────────────
+// GET Hot Deals
 if ($method === 'GET' && $action === 'hot-deals') {
-    $res = $db->query("SELECT * FROM games WHERE is_hot = 1 ORDER BY discount_percent DESC");
+    $genre = $db->real_escape_string($_GET['genre'] ?? '');
+    $where = "is_hot = 1";
+    if ($genre) $where .= " AND genre = '$genre'";
+    $res = $db->query("SELECT * FROM games WHERE $where ORDER BY discount_percent DESC");
     sendJSON(['success' => true, 'data' => ['items' => fetchAll($res)]]);
 }
 
-// ── GET /api/games/new-releases ──────────────────────────────
+// GET New Releases
 if ($method === 'GET' && $action === 'new-releases') {
     $res = $db->query("SELECT * FROM games WHERE is_new = 1 ORDER BY created_at DESC");
     sendJSON(['success' => true, 'data' => ['items' => fetchAll($res)]]);
@@ -92,21 +95,35 @@ if ($method === 'GET' && $action === 'search') {
     sendJSON(['success' => true, 'data' => ['items' => fetchAll($res)]]);
 }
 
-// ── GET /api/games (danh sách có lọc) ────────────────────────
+// GET Search & Filtered List
 if ($method === 'GET') {
-    // ... (giữ nguyên code cũ)
-    $where  = '1=1';
-    $genre  = $db->real_escape_string($_GET['genre']  ?? '');
-    $search = $db->real_escape_string($_GET['search'] ?? '');
+    $where    = '1=1';
+    $genre    = $db->real_escape_string($_GET['genre']  ?? '');
+    $search   = $db->real_escape_string($_GET['search'] ?? '');
+    $platform = $db->real_escape_string($_GET['platform'] ?? '');
+    $minPrice = isset($_GET['minPrice']) ? (float)$_GET['minPrice'] : -1;
+    $maxPrice = isset($_GET['maxPrice']) ? (float)$_GET['maxPrice'] : -1;
+    $sortBy   = $_GET['sortBy'] ?? 'newest';
+    $onlyDiscounted = isset($_GET['onlyDiscounted']) && ($_GET['onlyDiscounted'] === 'true' || $_GET['onlyDiscounted'] == 1);
+
+    if ($genre)    $where .= " AND genre = '$genre'";
+    if ($search)   $where .= " AND (title LIKE '%$search%' OR genre LIKE '%$search%')";
+    if ($platform) $where .= " AND platforms LIKE '%$platform%'";
+    if ($minPrice >= 0) $where .= " AND price >= $minPrice";
+    if ($maxPrice >= 0) $where .= " AND price <= $maxPrice";
+    if ($onlyDiscounted) $where .= " AND discount_percent > 0";
+
+    $order = "created_at DESC";
+    if ($sortBy === 'price_asc')  $order = "price ASC";
+    elseif ($sortBy === 'price_desc') $order = "price DESC";
+    elseif ($sortBy === 'rating')     $order = "rating DESC";
+
     $page   = max(0, (int)($_GET['page'] ?? 0));
     $size   = min(50, (int)($_GET['pageSize'] ?? 20));
     $offset = $page * $size;
 
-    if ($genre)  $where .= " AND genre = '$genre'";
-    if ($search) $where .= " AND (title LIKE '%$search%' OR genre LIKE '%$search%')";
-
     $total = $db->query("SELECT COUNT(*) as c FROM games WHERE $where")->fetch_assoc()['c'];
-    $res   = $db->query("SELECT * FROM games WHERE $where ORDER BY created_at DESC LIMIT $size OFFSET $offset");
+    $res   = $db->query("SELECT * FROM games WHERE $where ORDER BY $order LIMIT $size OFFSET $offset");
 
     sendJSON(['success' => true, 'data' => [
         'items'    => fetchAll($res),
@@ -173,9 +190,7 @@ if ($method === 'DELETE') {
 // ── HELPERS ──────────────────────────────────────────────────
 function fetchAll($result) {
     $rows = [];
-    if ($result) {
-        while ($row = $result->fetch_assoc()) $rows[] = formatGame($row);
-    }
+    if ($result) { while ($row = $result->fetch_assoc()) $rows[] = formatGame($row); }
     return $rows;
 }
 

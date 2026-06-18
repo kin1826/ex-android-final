@@ -11,6 +11,7 @@ import com.gamestore.util.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -21,26 +22,65 @@ class HomeViewModel @Inject constructor(
     private val tm: TokenManager,
 ) : ViewModel() {
 
+    // 1. Dữ liệu các phần trang chủ
     private val _featured    = MutableStateFlow<UiState<List<Game>>>(UiState.Loading)
     private val _hotDeals    = MutableStateFlow<UiState<List<Game>>>(UiState.Loading)
     private val _newReleases = MutableStateFlow<UiState<List<Game>>>(UiState.Loading)
     private val _categories  = MutableStateFlow<List<CategoryDto>>(emptyList())
-    private val _selectedGenre = MutableStateFlow<String?>(null)
     private val _isRefreshing  = MutableStateFlow(false)
 
-    private val _searchText = MutableStateFlow("")
-    private val _searchResult = MutableStateFlow<UiState<List<Game>>>(UiState.Success(emptyList()))
+    // 2. Toàn bộ trạng thái lọc quy về 1 mối
+    private val _filterState = MutableStateFlow(FilterState())
+    val filterState = _filterState.asStateFlow()
 
-
+    // Public States cho UI
     val featured:    StateFlow<UiState<List<Game>>> = _featured.asStateFlow()
     val hotDeals:    StateFlow<UiState<List<Game>>> = _hotDeals.asStateFlow()
     val newReleases: StateFlow<UiState<List<Game>>> = _newReleases.asStateFlow()
     val categories:  StateFlow<List<CategoryDto>>   = _categories.asStateFlow()
-    val selectedGenre = _selectedGenre.asStateFlow()
     val isRefreshing  = _isRefreshing.asStateFlow()
 
-    val searchText = _searchText.asStateFlow()
-    val searchResult = _searchResult.asStateFlow()
+    // Đếm số lượng bộ lọc đang chọn (Dùng cho Badge)
+    val activeFilterCount = _filterState.map { it.activeCount }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    // Quyết định hiển thị danh sách kết quả (Search Mode)
+    // Hiển thị danh sách nếu có Search Query HOẶC có bất kỳ bộ lọc nào khác "mặc định"
+    val isSearchingMode = _filterState.map { it.isSearching }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    // Luồng kết quả lọc Reactive - Luôn đồng bộ với filterState
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val filteredGames: StateFlow<UiState<List<Game>>> = _filterState
+        .debounce { if (it.search.isBlank()) 0 else 500 }
+        .flatMapLatest { params ->
+            if (params.isDefault) {
+                flowOf(UiState.Success(emptyList()))
+            } else {
+                flow {
+                    emit(UiState.Loading)
+                    try {
+                        val resp = api.getGames(
+                            genre = params.genre,
+                            search = params.search.takeIf { it.isNotBlank() },
+                            platform = params.platform,
+                            minPrice = params.priceRange?.min,
+                            maxPrice = params.priceRange?.max,
+                            sortBy = params.sortBy,
+                            onlyDiscounted = params.onlyDiscounted.takeIf { it },
+                            size = 50
+                        )
+                        if (resp.isSuccessful) {
+                            val items = resp.body()?.data?.items?.map { it.toModel() } ?: emptyList()
+                            emit(UiState.Success(items))
+                        } else {
+                            emit(UiState.Error("Không tìm thấy kết quả phù hợp"))
+                        }
+                    } catch (e: Exception) {
+                        emit(UiState.Error("Lỗi kết nối: ${e.message}"))
+                    }
+                }
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState.Success(emptyList()))
+
     val cartCount: StateFlow<Int> = cartDao
         .getCount(tm.getUserId())
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
@@ -50,120 +90,102 @@ class HomeViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _isRefreshing.value = true
-            _selectedGenre.value = null
-
-            // Chạy song song các task load
-            val tasks = listOf(
-                loadFeatured(),
-                loadHotDeals(),
-                loadNewReleases(),
-                if (_categories.value.isEmpty()) loadCategories() else launch {}
+            val jobs = listOf(
+                launch { loadFeatured() },
+                launch { loadHotDeals() },
+                launch { loadNewReleases() },
+                launch { loadCategories() }
             )
-            joinAll(*tasks.toTypedArray())
+            jobs.joinAll()
             _isRefreshing.value = false
         }
     }
 
-    private fun loadFeatured() = viewModelScope.launch {
+    /**
+     * Hàm được gọi khi nhấn nút "Áp dụng"
+     */
+    fun updateFilters(genre: String?, platform: String?, sort: String, price: PriceRange?, discount: Boolean) {
+        val oldGenre = _filterState.value.genre
+        _filterState.update { 
+            it.copy(genre = genre, platform = platform, sortBy = sort, priceRange = price, onlyDiscounted = discount)
+        }
+        
+        // Nếu thể loại thay đổi, tải lại các phần đề cử ở trang chủ
+        if (oldGenre != genre) {
+            viewModelScope.launch {
+                loadFeatured()
+                loadHotDeals()
+                loadNewReleases()
+            }
+        }
+    }
+
+    fun setSearchQuery(query: String) {
+        _filterState.update { it.copy(search = query) }
+    }
+
+    fun onGenreClick(genre: String) {
+        val newGenre = if (_filterState.value.genre == genre) null else genre
+        _filterState.update { it.copy(genre = newGenre) }
+        viewModelScope.launch {
+            loadFeatured()
+            loadHotDeals()
+            loadNewReleases()
+        }
+    }
+
+    fun clearAllFilters() {
+        _filterState.value = FilterState()
+        refresh()
+    }
+
+    private suspend fun loadFeatured() {
         _featured.value = UiState.Loading
-        // Đọc cache Room trước
-        val cached = gameDao.getFeatured().first()
-        if (cached.isNotEmpty()) {
-            _featured.value = UiState.Success(cached.map { it.toModel() })
-        }
         try {
-            val resp = api.getFeatured()
-            if (resp.isSuccessful && resp.body()?.data?.items != null) {
-                val dtos = resp.body()!!.data!!.items
-                gameDao.insertAll(dtos.map { it.toEntity() })
-                _featured.value = UiState.Success(dtos.map { it.toModel() })
-            } else if (cached.isEmpty()) {
-                _featured.value = UiState.Error("Không tải được dữ liệu")
+            val genre = _filterState.value.genre
+            val resp = api.getFeatured(genre = genre)
+            if (resp.isSuccessful) {
+                val items = resp.body()?.data?.items ?: emptyList()
+                if (genre == null) gameDao.insertAll(items.map { it.toEntity() })
+                _featured.value = UiState.Success(items.map { it.toModel() })
             }
-        }
-//        catch (e: Exception) {
-//            if (cached.isEmpty()) _featured.value = UiState.Error("Không có kết nối mạng")
-//        }
-        catch (e: Exception) {
-
-            e.printStackTrace()
-
-            if (cached.isEmpty()) {
-
-                _featured.value =
-                    UiState.Error(
-                        e.message ?: "Unknown error"
-                    )
+        } catch (e: Exception) {
+            val cached = gameDao.getFeatured().first()
+            if (cached.isNotEmpty() && _filterState.value.genre == null) {
+                _featured.value = UiState.Success(cached.map { it.toModel() })
+            } else {
+                _featured.value = UiState.Error("Lỗi tải dữ liệu")
             }
         }
     }
 
-    private fun loadHotDeals() = viewModelScope.launch {
+    private suspend fun loadHotDeals() {
         _hotDeals.value = UiState.Loading
-        val cached = gameDao.getHotDeals().first()
-        if (cached.isNotEmpty()) {
-            _hotDeals.value = UiState.Success(cached.map { it.toModel() })
-        }
         try {
-            val resp = api.getHotDeals()
-            if (resp.isSuccessful && resp.body()?.data?.items != null) {
-                val dtos = resp.body()!!.data!!.items
-                gameDao.insertAll(dtos.map { it.toEntity() })
-                _hotDeals.value = UiState.Success(dtos.map { it.toModel() })
-            } else if (cached.isEmpty()) {
-                _hotDeals.value = UiState.Error("Không tải được dữ liệu")
+            val resp = api.getHotDeals(genre = _filterState.value.genre)
+            if (resp.isSuccessful) {
+                val items = resp.body()?.data?.items ?: emptyList()
+                _hotDeals.value = UiState.Success(items.map { it.toModel() })
             }
-        }
-//        catch (e: Exception) {
-//            if (cached.isEmpty()) _hotDeals.value = UiState.Error("Không có kết nối mạng")
-//        }
-        catch (e: Exception) {
-
-            e.printStackTrace()
-
-            if (cached.isEmpty()) {
-
-                _hotDeals.value =
-                    UiState.Error(
-                        e.message ?: "Unknown error"
-                    )
-            }
+        } catch (e: Exception) {
+            _hotDeals.value = UiState.Error("Lỗi tải dữ liệu")
         }
     }
 
-    private fun loadNewReleases() = viewModelScope.launch {
+    private suspend fun loadNewReleases() {
         _newReleases.value = UiState.Loading
-        val cached = gameDao.getNewReleases().first()
-        if (cached.isNotEmpty()) {
-            _newReleases.value = UiState.Success(cached.map { it.toModel() })
-        }
         try {
-            val resp = api.getNewReleases()
-            if (resp.isSuccessful && resp.body()?.data?.items != null) {
-                val dtos = resp.body()!!.data!!.items
-                gameDao.insertAll(dtos.map { it.toEntity() })
-                _newReleases.value = UiState.Success(dtos.map { it.toModel() })
-            } else if (cached.isEmpty()) {
-                _newReleases.value = UiState.Error("Không tải được dữ liệu")
+            val resp = api.getNewReleases(genre = _filterState.value.genre)
+            if (resp.isSuccessful) {
+                val items = resp.body()?.data?.items ?: emptyList()
+                _newReleases.value = UiState.Success(items.map { it.toModel() })
             }
-        }
-//        catch (e: Exception) {
-//            if (cached.isEmpty()) _newReleases.value = UiState.Error("Không có kết nối mạng")
-//        }
-        catch (e: Exception) {
-
-            e.printStackTrace()
-
-            if (cached.isEmpty()) {
-
-                _newReleases.value =
-                    UiState.Error(
-                        e.message ?: "Unknown error"
-                    )
-            }
+        } catch (e: Exception) {
+            _newReleases.value = UiState.Error("Lỗi tải dữ liệu")
         }
     }
-    private fun loadCategories() = viewModelScope.launch {
+
+    private suspend fun loadCategories() {
         try {
             val resp = api.getCategories()
             if (resp.isSuccessful) {
@@ -171,115 +193,34 @@ class HomeViewModel @Inject constructor(
             }
         } catch (_: Exception) {}
     }
-    fun loadGamesByGenre(
-        genre: String
-    ) = viewModelScope.launch {
+}
 
-        _selectedGenre.value = genre
+/**
+ * Cấu trúc dữ liệu đại diện cho toàn bộ trạng thái lọc
+ */
+data class FilterState(
+    val genre: String? = null,
+    val platform: String? = null,
+    val search: String = "",
+    val priceRange: PriceRange? = null,
+    val sortBy: String = "newest",
+    val onlyDiscounted: Boolean = false
+) {
+    val isDefault: Boolean get() = genre == null && platform == null && search.isBlank() && 
+                                  priceRange == null && sortBy == "newest" && !onlyDiscounted
 
-        _featured.value = UiState.Loading
-        _hotDeals.value = UiState.Loading
-        _newReleases.value = UiState.Loading
+    val isSearching: Boolean get() = search.isNotBlank() || platform != null ||
+                                    priceRange != null || sortBy != "newest" || onlyDiscounted || genre != null
 
-        try {
-
-            val response = api.getGames(
-                genre = genre,
-                page = 0,
-                size = 100
-            )
-
-            if (
-                response.isSuccessful &&
-                response.body()?.data?.items != null
-            ) {
-
-                val games =
-                    response.body()!!
-                        .data!!
-                        .items
-                        .map { it.toModel() }
-
-                _featured.value =
-                    UiState.Success(
-                        games.filter { game ->
-                            game.isFeatured
-                        }
-                    )
-
-                _hotDeals.value =
-                    UiState.Success(
-                        games.filter { game ->
-                            game.isHot
-                        }
-                    )
-
-                _newReleases.value =
-                    UiState.Success(
-                        games.filter { game ->
-                            game.isNew
-                        }
-                    )
-
-            } else {
-
-                _featured.value =
-                    UiState.Success(emptyList())
-
-                _hotDeals.value =
-                    UiState.Success(emptyList())
-
-                _newReleases.value =
-                    UiState.Success(emptyList())
-            }
-
-        } catch (e: Exception) {
-
-            val message =
-                e.message ?: "Lỗi tải dữ liệu"
-
-            _featured.value =
-                UiState.Error(message)
-
-            _hotDeals.value =
-                UiState.Error(message)
-
-            _newReleases.value =
-                UiState.Error(message)
-        }
-    }
-    fun onGenreClick(genre: String) {
-
-        if (_selectedGenre.value == genre) {
-            refresh()
-        } else {
-            loadGamesByGenre(genre)
-        }
-    }
-    private fun searchGames(keyword: String) = viewModelScope.launch {
-        _searchResult.value = UiState.Loading
-        try {
-            val response = api.search(q = keyword)
-            val body = response.body()
-            if (response.isSuccessful && body?.data != null) {
-                // PagedData trả về danh sách nằm trong trường items
-                val games = body.data!!.items.map { it.toModel() }
-                _searchResult.value = UiState.Success(games)
-            } else {
-                _searchResult.value = UiState.Success(emptyList())
-            }
-        } catch (e: Exception) {
-            _searchResult.value = UiState.Error(e.message ?: "Search error")
-        }
-    }
-    fun onSearchChange(text: String) {
-        _searchText.value = text
-
-        if (text.isBlank()) {
-            _searchResult.value = UiState.Success(emptyList())
-            return
-        }
-
-        searchGames(text)
+    val activeCount: Int get() {
+        var count = 0
+        if (genre != null) count++
+        if (platform != null) count++
+        if (priceRange != null) count++
+        if (sortBy != "newest") count++
+        if (onlyDiscounted) count++
+        return count
     }
 }
+
+data class PriceRange(val label: String, val min: Double?, val max: Double?)
