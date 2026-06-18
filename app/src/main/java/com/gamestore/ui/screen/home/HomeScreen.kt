@@ -3,6 +3,7 @@ package com.gamestore.ui.screen.home
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -22,10 +23,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.gamestore.data.remote.NotificationDto
 import com.gamestore.model.*
 import com.gamestore.ui.theme.*
 import com.gamestore.util.toVND
 import com.gamestore.viewmodel.HomeViewModel
+import com.gamestore.viewmodel.NotificationViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +36,7 @@ fun HomeScreen(
     onGameClick: (Int) -> Unit,
     onCartClick: () -> Unit,
     vm: HomeViewModel = hiltViewModel(),
+    notiVm: NotificationViewModel = hiltViewModel()
 ) {
     val featured    by vm.featured.collectAsStateWithLifecycle()
     val hotDeals    by vm.hotDeals.collectAsStateWithLifecycle()
@@ -44,11 +48,16 @@ fun HomeScreen(
     val searchText by vm.searchText.collectAsStateWithLifecycle()
     val searchResult by vm.searchResult.collectAsStateWithLifecycle()
 
+    val unreadNoti by notiVm.unreadCount.collectAsStateWithLifecycle()
+    val notifications by notiVm.notifications.collectAsStateWithLifecycle()
+    var showNotiSheet by remember { mutableStateOf(false) }
+
     val isSearching = searchText.isNotBlank()
 
     // Tự động làm mới khi mở Trang chủ
     LaunchedEffect(Unit) {
         vm.refresh()
+        notiVm.loadNotifications()
     }
 
     Scaffold(
@@ -65,6 +74,16 @@ fun HomeScreen(
                     )
                 },
                 actions = {
+                    // Chuông thông báo
+                    BadgedBox(badge = {
+                        if (unreadNoti > 0) Badge(containerColor = RedColor) { Text("$unreadNoti") }
+                    }) {
+                        IconButton(onClick = { showNotiSheet = true }) {
+                            Icon(Icons.Default.Notifications, null, tint = TextPri)
+                        }
+                    }
+                    
+                    // Giỏ hàng
                     BadgedBox(badge = {
                         if (cartCount > 0) Badge(containerColor = RedColor) { Text("$cartCount") }
                     }) {
@@ -79,7 +98,10 @@ fun HomeScreen(
     ) { padding ->
         PullToRefreshBox(
             isRefreshing = isRefreshing,
-            onRefresh = { vm.refresh() },
+            onRefresh = { 
+                vm.refresh() 
+                notiVm.loadNotifications()
+            },
             modifier = Modifier.fillMaxSize().padding(padding)
         ) {
             LazyColumn(
@@ -185,6 +207,89 @@ fun HomeScreen(
                 }
 
                 item { Spacer(Modifier.height(80.dp)) }
+            }
+        }
+    }
+
+    if (showNotiSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showNotiSheet = false },
+            containerColor = DarkSurf,
+            dragHandle = { BottomSheetDefaults.DragHandle(color = DarkBorder) }
+        ) {
+            NotificationSheetContent(
+                state = notifications,
+                onMarkRead = { notiVm.markRead(it) },
+                onRefresh = { notiVm.loadNotifications() }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NotificationSheetContent(
+    state: UiState<List<NotificationDto>>,
+    onMarkRead: (Int) -> Unit,
+    onRefresh: () -> Unit
+) {
+    Column(Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
+        Row(
+            Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Thông báo", style = MaterialTheme.typography.titleLarge, color = TextPri, fontWeight = FontWeight.Bold)
+            TextButton(onClick = { onMarkRead(0) }) {
+                Text("Đọc tất cả", color = PurpleLt, fontSize = 13.sp)
+            }
+        }
+
+        PullToRefreshBox(
+            isRefreshing = false, // Sheet simple loading
+            onRefresh = onRefresh
+        ) {
+            when (state) {
+                is UiState.Loading -> Box(Modifier.fillMaxWidth().height(200.dp), Alignment.Center) { CircularProgressIndicator(color = PurpleLt) }
+                is UiState.Error -> Text(state.message, color = RedColor, modifier = Modifier.padding(16.dp))
+                is UiState.Success -> {
+                    if (state.data.isEmpty()) {
+                        Column(Modifier.fillMaxWidth().padding(48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("🔔", fontSize = 48.sp)
+                            Text("Không có thông báo nào", color = TextMuted)
+                        }
+                    } else {
+                        LazyColumn(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                            items(state.data, key = { it.id }) { noti ->
+                                NotificationItem(noti) { onMarkRead(noti.id) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun NotificationItem(noti: NotificationDto, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        color = if (noti.isRead) Color.Transparent else Purple.copy(0.05f)
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier.size(8.dp).clip(CircleShape)
+                    .background(if (noti.isRead) Color.Transparent else PurpleLt)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(noti.title, fontWeight = FontWeight.Bold, color = TextPri, fontSize = 15.sp)
+                Text(noti.message, color = TextMuted, fontSize = 13.sp, lineHeight = 18.sp)
+                Text(noti.createdAt, color = TextMuted.copy(0.7f), fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
             }
         }
     }
