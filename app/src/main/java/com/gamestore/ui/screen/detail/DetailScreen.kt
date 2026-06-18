@@ -1,6 +1,7 @@
 package com.gamestore.ui.screen.detail
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.*
@@ -13,13 +14,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -31,6 +39,8 @@ import com.gamestore.ui.theme.*
 import com.gamestore.util.toVND
 import com.gamestore.viewmodel.DetailViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -42,12 +52,47 @@ fun DetailScreen(
     val state   by vm.game.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // --- ANIMATION STATES ---
+    var cartIconOffset by remember { mutableStateOf(Offset.Zero) }
+    var buyButtonOffset by remember { mutableStateOf(Offset.Zero) }
+    
+    var isFlying by remember { mutableStateOf(false) }
+    var showAddedPopup by remember { mutableStateOf(false) }
+    val flyingProgress = remember { Animatable(0f) }
+    val cartScale = remember { Animatable(1f) }
 
     LaunchedEffect(message) {
         message?.let {
-            snackbar.showSnackbar(it)
-            delay(1500)
-            vm.clearMessage()
+            if (it.contains("giỏ hàng")) {
+                // Trigger flying animation
+                isFlying = true
+                flyingProgress.snapTo(0f)
+                
+                // Fly to cart
+                flyingProgress.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
+                )
+                
+                isFlying = false
+                
+                // Bounce cart icon
+                launch {
+                    cartScale.animateTo(1.4f, tween(100))
+                    cartScale.animateTo(1f, spring(Spring.DampingRatioMediumBouncy))
+                }
+                
+                // Show popup
+                showAddedPopup = true
+                delay(3000)
+                showAddedPopup = false
+            } else {
+                snackbar.showSnackbar(it)
+                delay(1500)
+                vm.clearMessage()
+            }
         }
     }
 
@@ -197,13 +242,53 @@ fun DetailScreen(
                         ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
                         }
-                        IconButton(
-                            onClick = onCartClick,
-                            modifier = Modifier
-                                .background(Color.Black.copy(0.5f), CircleShape)
-                                .size(40.dp),
-                        ) {
-                            Icon(Icons.Default.ShoppingCart, null, tint = Color.White)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            IconButton(
+                                onClick = { vm.toggleWishlist() },
+                                modifier = Modifier
+                                    .background(Color.Black.copy(0.5f), CircleShape)
+                                    .size(40.dp),
+                            ) {
+                                Icon(
+                                    if (game.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    null,
+                                    tint = if (game.isFavorite) RedColor else Color.White
+                                )
+                            }
+                            Box {
+                                IconButton(
+                                    onClick = onCartClick,
+                                    modifier = Modifier
+                                        .onGloballyPositioned { cartIconOffset = it.positionInRoot() }
+                                        .scale(cartScale.value)
+                                        .background(Color.Black.copy(0.5f), CircleShape)
+                                        .size(40.dp),
+                                ) {
+                                    Icon(Icons.Default.ShoppingCart, null, tint = Color.White)
+                                }
+                                
+                                // Added Popup
+                                androidx.compose.animation.AnimatedVisibility(
+                                    visible = showAddedPopup,
+                                    enter = fadeIn() + expandVertically(),
+                                    exit = fadeOut() + shrinkVertically(),
+                                    modifier = Modifier.align(Alignment.BottomCenter).padding(top = 45.dp)
+                                ) {
+                                    Surface(
+                                        color = PurpleLt,
+                                        shape = RoundedCornerShape(8.dp),
+                                        tonalElevation = 4.dp
+                                    ) {
+                                        Text(
+                                            "Đã thêm!",
+                                            color = Color.White,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -211,8 +296,33 @@ fun DetailScreen(
                     BottomPurchaseBar(
                         game    = game,
                         onBuy   = { vm.addToCart() },
+                        onGloballyPositioned = { buyButtonOffset = it.positionInRoot() },
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
+
+                    // ── FLYING IMAGE ANIMATION ────────────────────────────
+                    if (isFlying) {
+                        val density = LocalDensity.current
+                        val startX = with(density) { buyButtonOffset.x.toDp() }
+                        val startY = with(density) { buyButtonOffset.y.toDp() }
+                        val endX = with(density) { cartIconOffset.x.toDp() }
+                        val endY = with(density) { cartIconOffset.y.toDp() }
+
+                        val currentX = startX + (endX - startX) * flyingProgress.value
+                        val currentY = startY + (endY - startY) * flyingProgress.value
+                        
+                        AsyncImage(
+                            model = game.thumbnailUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .offset(x = currentX, y = currentY)
+                                .size(60.dp * (1f - flyingProgress.value * 0.5f))
+                                .clip(RoundedCornerShape(8.dp))
+                                .alpha(1f - flyingProgress.value * 0.5f)
+                                .border(2.dp, Color.White, RoundedCornerShape(8.dp))
+                        )
+                    }
                 }
             }
         }
@@ -556,10 +666,11 @@ fun GameBadge(text: String, color: Color) {
 fun BottomPurchaseBar(
     game: Game,
     onBuy: () -> Unit,
+    onGloballyPositioned: (androidx.compose.ui.layout.LayoutCoordinates) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier  = modifier.fillMaxWidth(),
+        modifier  = modifier.fillMaxWidth().onGloballyPositioned(onGloballyPositioned),
         color     = DarkSurf,
         tonalElevation = 8.dp,
         border    = BorderStroke(width = 0.5.dp, color = DarkBorder),

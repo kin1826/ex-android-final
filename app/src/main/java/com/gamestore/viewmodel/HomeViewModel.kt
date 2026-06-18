@@ -9,8 +9,8 @@ import com.gamestore.data.remote.*
 import com.gamestore.model.*
 import com.gamestore.util.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -26,6 +26,8 @@ class HomeViewModel @Inject constructor(
     private val _newReleases = MutableStateFlow<UiState<List<Game>>>(UiState.Loading)
     private val _categories  = MutableStateFlow<List<CategoryDto>>(emptyList())
     private val _selectedGenre = MutableStateFlow<String?>(null)
+    private val _isRefreshing  = MutableStateFlow(false)
+
     private val _searchText = MutableStateFlow("")
     private val _searchResult = MutableStateFlow<UiState<List<Game>>>(UiState.Success(emptyList()))
 
@@ -35,6 +37,8 @@ class HomeViewModel @Inject constructor(
     val newReleases: StateFlow<UiState<List<Game>>> = _newReleases.asStateFlow()
     val categories:  StateFlow<List<CategoryDto>>   = _categories.asStateFlow()
     val selectedGenre = _selectedGenre.asStateFlow()
+    val isRefreshing  = _isRefreshing.asStateFlow()
+
     val searchText = _searchText.asStateFlow()
     val searchResult = _searchResult.asStateFlow()
     val cartCount: StateFlow<Int> = cartDao
@@ -44,12 +48,19 @@ class HomeViewModel @Inject constructor(
     init { refresh() }
 
     fun refresh() {
-        _selectedGenre.value = null
-        loadFeatured()
-        loadHotDeals()
-        loadNewReleases()
-        if (_categories.value.isEmpty()) {
-            loadCategories()
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            _selectedGenre.value = null
+
+            // Chạy song song các task load
+            val tasks = listOf(
+                loadFeatured(),
+                loadHotDeals(),
+                loadNewReleases(),
+                if (_categories.value.isEmpty()) loadCategories() else launch {}
+            )
+            joinAll(*tasks.toTypedArray())
+            _isRefreshing.value = false
         }
     }
 
@@ -246,25 +257,17 @@ class HomeViewModel @Inject constructor(
         }
     }
     private fun searchGames(keyword: String) = viewModelScope.launch {
-
         _searchResult.value = UiState.Loading
-
         try {
             val response = api.search(q = keyword)
-
-            if (response.isSuccessful && response.body()?.data != null) {
-
-                val games = response.body()!!
-                    .data!!
-                    .items
-                    .map { it.toModel() }
-
+            val body = response.body()
+            if (response.isSuccessful && body?.data != null) {
+                // PagedData trả về danh sách nằm trong trường items
+                val games = body.data!!.items.map { it.toModel() }
                 _searchResult.value = UiState.Success(games)
-
             } else {
                 _searchResult.value = UiState.Success(emptyList())
             }
-
         } catch (e: Exception) {
             _searchResult.value = UiState.Error(e.message ?: "Search error")
         }

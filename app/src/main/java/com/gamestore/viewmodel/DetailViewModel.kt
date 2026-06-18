@@ -13,6 +13,7 @@ import javax.inject.Inject
 @HiltViewModel
 class DetailViewModel @Inject constructor(
     private val api: GameApi,
+    private val wishlistApi: WishlistApi,
     private val gameDao: GameDao,
     private val cartDao: CartDao,
     private val tm: TokenManager,
@@ -61,6 +62,25 @@ class DetailViewModel @Inject constructor(
                 gameThumbnail = game.thumbnailUrl, discountPercent = game.discountPercent,
             ))
             _message.value = "✓ Đã thêm vào giỏ hàng"
+        }
+    }
+
+    fun toggleWishlist() {
+        val userId = tm.getUserId()
+        if (userId == 0) { _message.value = "Vui lòng đăng nhập để yêu thích"; return }
+        val game = (_game.value as? UiState.Success)?.data ?: return
+
+        viewModelScope.launch {
+            try {
+                val resp = wishlistApi.toggleWishlist(WishlistToggleRequest(userId, game.id))
+                if (resp.isSuccessful && resp.body()?.success == true) {
+                    val isFav = resp.body()?.data?.isFavorite ?: false
+                    _game.value = UiState.Success(game.copy(isFavorite = isFav))
+                    _message.value = if (isFav) "❤️ Đã thêm vào yêu thích" else "💔 Đã xóa khỏi yêu thích"
+                }
+            } catch (e: Exception) {
+                _message.value = "Lỗi kết nối"
+            }
         }
     }
 

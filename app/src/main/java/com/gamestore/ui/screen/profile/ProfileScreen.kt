@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,12 +30,14 @@ import com.gamestore.viewmodel.AuthViewModel
 fun ProfileScreen(
     onLoginClick: () -> Unit,
     onOrderHistoryClick: () -> Unit,
+    onWishlistClick: () -> Unit,
     onDepositClick: () -> Unit,
     onAdminClick: () -> Unit,
     vm: AuthViewModel = hiltViewModel(),
 ) {
     val isLoggedIn  by vm.isLoggedIn.collectAsStateWithLifecycle()
     val currentUser by vm.currentUser.collectAsStateWithLifecycle()
+    val isRefreshing by vm.isRefreshing.collectAsStateWithLifecycle()
 
     // Mỗi khi màn hình này hiện lên (ví dụ sau khi popBackStack từ Login), ta sẽ refresh dữ liệu
     LaunchedEffect(Unit) {
@@ -50,120 +53,121 @@ fun ProfileScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState()),
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { vm.refresh() },
+            modifier = Modifier.fillMaxSize().padding(padding)
         ) {
-            if (!isLoggedIn || currentUser == null) {
-                // Chưa đăng nhập (giữ nguyên)
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(48.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text("👤", fontSize = 64.sp)
-                    Text("Chưa đăng nhập", fontSize = 18.sp, color = TextPri, fontWeight = FontWeight.Bold)
-                    Text("Đăng nhập để xem lịch sử mua hàng", color = TextMuted, fontSize = 13.sp)
-                    Button(
-                        onClick  = onLoginClick,
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        colors   = ButtonDefaults.buttonColors(containerColor = Purple),
-                        shape    = RoundedCornerShape(12.dp),
-                    ) { Text("Đăng nhập / Đăng ký", fontWeight = FontWeight.SemiBold) }
-                }
-            } else {
-                val user = currentUser!!
-
-                // Avatar + info (giữ nguyên)
-                Column(
-                    modifier            = Modifier.fillMaxWidth().padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Surface(
-                        modifier = Modifier.size(80.dp),
-                        shape    = CircleShape,
-                        color    = Purple.copy(alpha = 0.2f),
-                        border   = BorderStroke(2.dp, PurpleLt),
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                if (!isLoggedIn || currentUser == null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(48.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
+                        Text("👤", fontSize = 64.sp)
+                        Text("Chưa đăng nhập", fontSize = 18.sp, color = TextPri, fontWeight = FontWeight.Bold)
+                        Text("Đăng nhập để xem lịch sử mua hàng", color = TextMuted, fontSize = 13.sp)
+                        Button(
+                            onClick  = onLoginClick,
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            colors   = ButtonDefaults.buttonColors(containerColor = Purple),
+                            shape    = RoundedCornerShape(12.dp),
+                        ) { Text("Đăng nhập / Đăng ký", fontWeight = FontWeight.SemiBold) }
+                    }
+                } else {
+                    val user = currentUser!!
+
+                    Column(
+                        modifier            = Modifier.fillMaxWidth().padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(80.dp),
+                            shape    = CircleShape,
+                            color    = Purple.copy(alpha = 0.2f),
+                            border   = BorderStroke(2.dp, PurpleLt),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    user.displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "G",
+                                    fontSize   = 32.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color      = PurpleLt,
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Text(user.displayName, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPri)
+                        Text(user.email, fontSize = 13.sp, color = TextMuted)
+                        Spacer(Modifier.height(8.dp))
+                        Surface(
+                            color  = Purple.copy(alpha = 0.15f),
+                            shape  = RoundedCornerShape(20.dp),
+                            border = BorderStroke(1.dp, PurpleLt.copy(alpha = 0.3f)),
+                        ) {
                             Text(
-                                user.displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "G",
-                                fontSize   = 32.sp,
-                                fontWeight = FontWeight.Bold,
+                                "🏅 ${user.membershipLevel}",
                                 color      = PurpleLt,
+                                fontSize   = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier   = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
                             )
                         }
                     }
-                    Spacer(Modifier.height(12.dp))
-                    Text(user.displayName, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPri)
-                    Text(user.email, fontSize = 13.sp, color = TextMuted)
-                    Spacer(Modifier.height(8.dp))
-                    Surface(
-                        color  = Purple.copy(alpha = 0.15f),
-                        shape  = RoundedCornerShape(20.dp),
-                        border = BorderStroke(1.dp, PurpleLt.copy(alpha = 0.3f)),
+
+                    Row(
+                        modifier              = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text(
-                            "🏅 ${user.membershipLevel}",
-                            color      = PurpleLt,
-                            fontSize   = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier   = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
-                        )
+                        StatCard("💰 Số dư ví", user.walletBalance.toVND(), Modifier.weight(1f), onClick = onDepositClick)
+                        StatCard("⭐ Điểm", "${user.points} điểm", Modifier.weight(1f))
                     }
-                }
 
-                // Stats - BIẾN CARD SỐ DƯ THÀNH NÚT BẤM
-                Row(
-                    modifier              = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    StatCard("💰 Số dư ví", user.walletBalance.toVND(), Modifier.weight(1f), onClick = onDepositClick)
-                    StatCard("⭐ Điểm", "${user.points} điểm", Modifier.weight(1f))
-                }
-
-                Spacer(Modifier.height(20.dp))
-                Text(
-                    "Quản lý tài khoản",
-                    color      = TextMuted,
-                    fontSize   = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier   = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-
-                MenuRow(Icons.Default.Receipt,     "Lịch sử đơn hàng",  onOrderHistoryClick)
-                MenuRow(Icons.Default.Favorite,    "Yêu thích",          {})
-                MenuRow(Icons.Default.Games,       "Game đã mua",        {})
-                // THÊM NÚT NẠP TIỀN Ở ĐÂY
-                MenuRow(Icons.Default.AddCard,     "Nạp tiền vào ví",    onDepositClick)
-
-                if (user.isAdmin) {
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(20.dp))
                     Text(
-                        "Quản trị viên",
-                        color      = PurpleLt,
+                        "Quản lý tài khoản",
+                        color      = TextMuted,
                         fontSize   = 12.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         modifier   = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
-                    MenuRow(Icons.Default.AdminPanelSettings, "Bảng điều khiển Admin", onAdminClick, color = PurpleLt)
+
+                    MenuRow(Icons.Default.Receipt,     "Lịch sử đơn hàng",  onOrderHistoryClick)
+                    MenuRow(Icons.Default.Favorite,    "Yêu thích",          onWishlistClick)
+                    MenuRow(Icons.Default.Games,       "Game đã mua",        {})
+                    MenuRow(Icons.Default.AddCard,     "Nạp tiền vào ví",    onDepositClick)
+
+                    if (user.isAdmin) {
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            "Quản trị viên",
+                            color      = PurpleLt,
+                            fontSize   = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier   = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
+                        MenuRow(Icons.Default.AdminPanelSettings, "Bảng điều khiển Admin", onAdminClick, color = PurpleLt)
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+                    HorizontalDivider(color = DarkBorder, modifier = Modifier.padding(horizontal = 16.dp))
+                    Spacer(Modifier.height(8.dp))
+
+                    MenuRow(
+                        icon    = Icons.AutoMirrored.Filled.Logout,
+                        label   = "Đăng xuất",
+                        onClick = { vm.logout() },
+                        color   = RedColor,
+                    )
+                    Spacer(Modifier.height(80.dp))
                 }
-
-                Spacer(Modifier.height(8.dp))
-                HorizontalDivider(color = DarkBorder, modifier = Modifier.padding(horizontal = 16.dp))
-                Spacer(Modifier.height(8.dp))
-
-                MenuRow(
-                    icon    = Icons.AutoMirrored.Filled.Logout,
-                    label   = "Đăng xuất",
-                    onClick = { vm.logout() },
-                    color   = RedColor,
-                )
-                Spacer(Modifier.height(80.dp))
             }
         }
     }
