@@ -40,6 +40,7 @@ data class GameDto(
     @SerializedName("isHot")           val isHot: Boolean = false,
     @SerializedName("isNew")           val isNew: Boolean = false,
     @SerializedName("isOwned")         val isOwned: Boolean = false,
+    @SerializedName("isFavorite")      val isFavorite: Boolean = false,
     val stock: Int = 999,
 )
 
@@ -72,6 +73,7 @@ data class UserDto(
     val points: Int = 0,
     val membershipLevel: String = "BRONZE",
     val isAdmin: Boolean = false,
+    val isActive: Boolean = true,
 )
 
 data class CreateOrderRequest(
@@ -84,6 +86,38 @@ data class CreateOrderRequest(
 data class DepositRequest(
     val userId: Int,
     val amount: Double
+)
+
+data class DepositResponse(
+    val id: Int,
+    val amount: Double,
+    val memo: String,
+    val status: String,
+    @SerializedName("bank_info") val bankInfo: BankInfo
+)
+
+data class BankInfo(
+    val account_name: String,
+    val account_number: String,
+    val bank_name: String
+)
+
+data class DepositDto(
+    val id: Int = 0,
+    @SerializedName("user_id") val userId: Int = 0,
+    val amount: Double = 0.0,
+    val memo: String = "",
+    val status: String = "",
+    @SerializedName("created_at") val createdAt: String = "",
+    @SerializedName("display_name") val userName: String? = null,
+    @SerializedName("email") val userEmail: String? = null
+)
+
+data class AdminDepositActionRequest(
+    val adminId: Int,
+    val depositId: Int,
+    val action: String, // approve, reject
+    val adminNote: String? = null
 )
 
 data class OrderItemReq(val gameId: Int, val quantity: Int)
@@ -164,4 +198,45 @@ data class GameRequest(
     val isFeatured: Int,
     val isHot: Int,
     val isNew: Int
+)
+
+data class WalletUpdateRequest(
+    val adminId: Int,
+    val userId: Int,
+    val amount: Double
+)
+
+data class UserStatusUpdateRequest(
+    val adminId: Int,
+    val userId: Int,
+    val isAdmin: Int? = null,
+    val isActive: Int? = null
+)
+
+data class GenericAdminRequest(
+    val adminId: Int,
+    val userId: Int
+)
+
+data class WishlistToggleRequest(
+    val userId: Int,
+    val gameId: Int
+)
+
+data class WishlistToggleResponse(
+    val isFavorite: Boolean
+)
+
+data class NotificationDto(
+    val id: Int,
+    @SerializedName("user_id") val userId: Int,
+    val title: String,
+    val message: String,
+    @SerializedName("is_read") val isRead: Boolean,
+    @SerializedName("created_at") val createdAt: String
+)
+
+data class MarkReadRequest(
+    val userId: Int,
+    @SerializedName("notificationId") val notificationId: Int = 0
 )

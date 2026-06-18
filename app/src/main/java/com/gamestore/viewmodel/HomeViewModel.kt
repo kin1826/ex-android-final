@@ -9,7 +9,7 @@ import com.gamestore.data.remote.*
 import com.gamestore.model.*
 import com.gamestore.util.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -27,7 +27,8 @@ class HomeViewModel @Inject constructor(
     private val _hotDeals    = MutableStateFlow<UiState<List<Game>>>(UiState.Loading)
     private val _newReleases = MutableStateFlow<UiState<List<Game>>>(UiState.Loading)
     private val _categories  = MutableStateFlow<List<CategoryDto>>(emptyList())
-    
+    private val _isRefreshing  = MutableStateFlow(false)
+
     // 2. Toàn bộ trạng thái lọc quy về 1 mối
     private val _filterState = MutableStateFlow(FilterState())
     val filterState = _filterState.asStateFlow()
@@ -37,7 +38,8 @@ class HomeViewModel @Inject constructor(
     val hotDeals:    StateFlow<UiState<List<Game>>> = _hotDeals.asStateFlow()
     val newReleases: StateFlow<UiState<List<Game>>> = _newReleases.asStateFlow()
     val categories:  StateFlow<List<CategoryDto>>   = _categories.asStateFlow()
-    
+    val isRefreshing  = _isRefreshing.asStateFlow()
+
     // Đếm số lượng bộ lọc đang chọn (Dùng cho Badge)
     val activeFilterCount = _filterState.map { it.activeCount }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
@@ -86,10 +88,17 @@ class HomeViewModel @Inject constructor(
     init { refresh() }
 
     fun refresh() {
-        loadFeatured()
-        loadHotDeals()
-        loadNewReleases()
-        loadCategories()
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            val jobs = listOf(
+                launch { loadFeatured() },
+                launch { loadHotDeals() },
+                launch { loadNewReleases() },
+                launch { loadCategories() }
+            )
+            jobs.joinAll()
+            _isRefreshing.value = false
+        }
     }
 
     /**
@@ -103,9 +112,11 @@ class HomeViewModel @Inject constructor(
         
         // Nếu thể loại thay đổi, tải lại các phần đề cử ở trang chủ
         if (oldGenre != genre) {
-            loadFeatured()
-            loadHotDeals()
-            loadNewReleases()
+            viewModelScope.launch {
+                loadFeatured()
+                loadHotDeals()
+                loadNewReleases()
+            }
         }
     }
 
@@ -116,9 +127,11 @@ class HomeViewModel @Inject constructor(
     fun onGenreClick(genre: String) {
         val newGenre = if (_filterState.value.genre == genre) null else genre
         _filterState.update { it.copy(genre = newGenre) }
-        loadFeatured()
-        loadHotDeals()
-        loadNewReleases()
+        viewModelScope.launch {
+            loadFeatured()
+            loadHotDeals()
+            loadNewReleases()
+        }
     }
 
     fun clearAllFilters() {
@@ -126,7 +139,7 @@ class HomeViewModel @Inject constructor(
         refresh()
     }
 
-    private fun loadFeatured() = viewModelScope.launch {
+    private suspend fun loadFeatured() {
         _featured.value = UiState.Loading
         try {
             val genre = _filterState.value.genre
@@ -146,7 +159,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun loadHotDeals() = viewModelScope.launch {
+    private suspend fun loadHotDeals() {
         _hotDeals.value = UiState.Loading
         try {
             val resp = api.getHotDeals(genre = _filterState.value.genre)
@@ -159,7 +172,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun loadNewReleases() = viewModelScope.launch {
+    private suspend fun loadNewReleases() {
         _newReleases.value = UiState.Loading
         try {
             val resp = api.getNewReleases(genre = _filterState.value.genre)
@@ -172,7 +185,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun loadCategories() = viewModelScope.launch {
+    private suspend fun loadCategories() {
         try {
             val resp = api.getCategories()
             if (resp.isSuccessful) {
@@ -196,7 +209,7 @@ data class FilterState(
     val isDefault: Boolean get() = genre == null && platform == null && search.isBlank() && 
                                   priceRange == null && sortBy == "newest" && !onlyDiscounted
 
-    val isSearching: Boolean get() = search.isNotBlank() || platform != null || 
+    val isSearching: Boolean get() = search.isNotBlank() || platform != null ||
                                     priceRange != null || sortBy != "newest" || onlyDiscounted || genre != null
 
     val activeCount: Int get() {

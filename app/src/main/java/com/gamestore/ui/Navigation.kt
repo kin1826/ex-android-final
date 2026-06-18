@@ -30,11 +30,14 @@ object R {
     const val SUCCESS = "success/{orderId}"
     const val ORDERS  = "orders"
     const val PROFILE = "profile"
+    const val WISHLIST = "wishlist"
     const val AUTH    = "auth"
     const val DEPOSIT = "deposit"
     const val ADMIN_GAMES = "admin_games"
     const val ADMIN_EDIT_GAME = "admin_edit_game"
     const val ADMIN_CATEGORIES = "admin_categories"
+    const val ADMIN_USERS = "admin_users"
+    const val ADMIN_DEPOSITS = "admin_deposits"
     const val ADMIN_DASHBOARD = "admin_dashboard"
     fun detail(id: Int)   = "detail/$id"
     fun success(id: Int)  = "success/$id"
@@ -54,7 +57,7 @@ fun AppNavigation() {
         Triple(R.ORDERS,  "Đơn hàng",  Icons.Default.Receipt),
         Triple(R.PROFILE, "Tài khoản", Icons.Default.Person),
     )
-    val noBar = setOf("detail/", "success/", R.AUTH, R.DEPOSIT, R.ADMIN_GAMES, R.ADMIN_DASHBOARD, R.ADMIN_CATEGORIES, R.ADMIN_EDIT_GAME)
+    val noBar = setOf("detail/", "success/", R.AUTH, R.DEPOSIT, R.ADMIN_GAMES, R.ADMIN_DASHBOARD, R.ADMIN_CATEGORIES, R.ADMIN_EDIT_GAME, R.ADMIN_USERS)
     val showBar = noBar.none { route?.startsWith(it.trimEnd('/')) == true }
 
     Scaffold(
@@ -83,7 +86,11 @@ fun AppNavigation() {
             }
         }
     ) { padding ->
-        NavHost(nav, R.HOME, Modifier.padding(padding)) {
+        NavHost(
+            navController = nav,
+            startDestination = R.HOME,
+            modifier = Modifier.padding(bottom = padding.calculateBottomPadding())
+        ) {
             composable(R.HOME) {
                 HomeScreen(onGameClick = { nav.navigate(R.detail(it)) }, onCartClick = { nav.navigate(R.CART) })
             }
@@ -106,8 +113,15 @@ fun AppNavigation() {
                 ProfileScreen(
                     onLoginClick = { nav.navigate(R.AUTH) },
                     onOrderHistoryClick = { nav.navigate(R.ORDERS) },
+                    onWishlistClick = { nav.navigate(R.WISHLIST) },
                     onDepositClick = { nav.navigate(R.DEPOSIT) },
                     onAdminClick = { nav.navigate(R.ADMIN_DASHBOARD) }
+                )
+            }
+            composable(R.WISHLIST) {
+                com.gamestore.ui.screen.profile.WishlistScreen(
+                    onBack = { nav.popBackStack() },
+                    onGameClick = { nav.navigate(R.detail(it)) }
                 )
             }
             composable(R.AUTH)    { AuthScreen(onSuccess = { nav.popBackStack() }) }
@@ -118,8 +132,13 @@ fun AppNavigation() {
                 com.gamestore.ui.screen.admin.AdminDashboardScreen(
                     onBack = { nav.popBackStack() },
                     onManageGames = { nav.navigate(R.ADMIN_GAMES) },
-                    onManageCategories = { nav.navigate(R.ADMIN_CATEGORIES) }
+                    onManageCategories = { nav.navigate(R.ADMIN_CATEGORIES) },
+                    onManageUsers = { nav.navigate(R.ADMIN_USERS) },
+                    onManageDeposits = { nav.navigate(R.ADMIN_DEPOSITS) }
                 )
+            }
+            composable(R.ADMIN_DEPOSITS) {
+                com.gamestore.ui.screen.admin.AdminDepositScreen(onBack = { nav.popBackStack() })
             }
             composable(R.ADMIN_CATEGORIES) {
                 com.gamestore.ui.screen.admin.AdminCategoryScreen(onBack = { nav.popBackStack() })
@@ -143,6 +162,9 @@ fun AppNavigation() {
                     game = game,
                     onBack = { nav.popBackStack() }
                 )
+            }
+            composable(R.ADMIN_USERS) {
+                com.gamestore.ui.screen.admin.AdminUserScreen(onBack = { nav.popBackStack() })
             }
         }
     }

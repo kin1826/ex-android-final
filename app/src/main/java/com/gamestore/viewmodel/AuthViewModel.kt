@@ -20,10 +20,12 @@ class AuthViewModel @Inject constructor(
     private val _state       = MutableStateFlow<UiState<User>?>(null)
     private val _isLoggedIn  = MutableStateFlow(tm.isLoggedIn())
     private val _currentUser = MutableStateFlow<User?>(tm.getUser())
+    private val _isRefreshing = MutableStateFlow(false)
 
     val state:       StateFlow<UiState<User>?> = _state.asStateFlow()
     val isLoggedIn:  StateFlow<Boolean>         = _isLoggedIn.asStateFlow()
     val currentUser: StateFlow<User?>           = _currentUser.asStateFlow()
+    val isRefreshing: StateFlow<Boolean>        = _isRefreshing.asStateFlow()
 
     init {
         refresh()
@@ -36,6 +38,7 @@ class AuthViewModel @Inject constructor(
         // Cập nhật từ server nếu đã login
         if (tm.isLoggedIn()) {
             viewModelScope.launch {
+                _isRefreshing.value = true
                 try {
                     val resp = userApi.getProfile(userId = tm.getUserId())
                     if (resp.isSuccessful && resp.body()?.data != null) {
@@ -43,7 +46,10 @@ class AuthViewModel @Inject constructor(
                         tm.saveUser(user)
                         _currentUser.value = user
                     }
-                } catch (e: Exception) {}
+                } catch (e: Exception) {
+                } finally {
+                    _isRefreshing.value = false
+                }
             }
         }
     }
