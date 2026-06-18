@@ -107,6 +107,26 @@ interface UserApi {
         @Query("action") action: String = "deposit",
         @Body body: DepositRequest
     ): Response<ApiResponse<Map<String, Any>>>
+
+    @POST("deposits.php")
+    suspend fun requestDeposit(
+        @Body body: DepositRequest
+    ): Response<ApiResponse<DepositResponse>>
+
+    @GET("deposits.php")
+    suspend fun getMyDeposits(
+        @Query("userId") userId: Int
+    ): Response<ApiResponse<List<DepositDto>>>
+
+    @GET("deposits.php")
+    suspend fun getAdminDeposits(
+        @Query("adminId") adminId: Int
+    ): Response<ApiResponse<List<DepositDto>>>
+
+    @POST("deposits.php")
+    suspend fun updateDepositStatus(
+        @Body body: AdminDepositActionRequest
+    ): Response<ApiResponse<Unit>>
 }
 
 interface AdminApi {
@@ -160,4 +180,16 @@ interface WishlistApi {
     suspend fun toggleWishlist(
         @Body body: WishlistToggleRequest
     ): Response<ApiResponse<WishlistToggleResponse>>
+}
+
+interface NotificationApi {
+    @GET("notifications.php")
+    suspend fun getNotifications(
+        @Query("userId") userId: Int
+    ): Response<ApiResponse<List<NotificationDto>>>
+
+    @POST("notifications.php")
+    suspend fun markRead(
+        @Body body: MarkReadRequest
+    ): Response<ApiResponse<Unit>>
 }

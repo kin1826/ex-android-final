@@ -34,6 +34,7 @@ fun AdminDashboardScreen(
     onManageGames: () -> Unit,
     onManageCategories: () -> Unit,
     onManageUsers: () -> Unit,
+    onManageDeposits: () -> Unit,
     vm: AdminViewModel = hiltViewModel()
 ) {
     val statsState by vm.stats.collectAsStateWithLifecycle()
@@ -73,10 +74,15 @@ fun AdminDashboardScreen(
 
                     // 2. Các nút chức năng
                     item {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            AdminMenuButton("Game", Icons.Default.Games, Purple, onManageGames, Modifier.weight(1f))
-                            AdminMenuButton("Thể loại", Icons.Default.Category, Color(0xFFF59E0B), onManageCategories, Modifier.weight(1f))
-                            AdminMenuButton("User", Icons.Default.Person, Color(0xFF10B981), onManageUsers, Modifier.weight(1f))
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                AdminMenuButton("Game", Icons.Default.Games, Purple, onManageGames, Modifier.weight(1f))
+                                AdminMenuButton("Thể loại", Icons.Default.Category, Color(0xFFF59E0B), onManageCategories, Modifier.weight(1f))
+                            }
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                AdminMenuButton("User", Icons.Default.Person, Color(0xFF10B981), onManageUsers, Modifier.weight(1f))
+                                AdminMenuButton("Duyệt nạp", Icons.Default.AccountBalanceWallet, Color(0xFFEC4899), onManageDeposits, Modifier.weight(1f))
+                            }
                         }
                     }
 

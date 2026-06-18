@@ -37,6 +37,7 @@ object R {
     const val ADMIN_EDIT_GAME = "admin_edit_game"
     const val ADMIN_CATEGORIES = "admin_categories"
     const val ADMIN_USERS = "admin_users"
+    const val ADMIN_DEPOSITS = "admin_deposits"
     const val ADMIN_DASHBOARD = "admin_dashboard"
     fun detail(id: Int)   = "detail/$id"
     fun success(id: Int)  = "success/$id"
@@ -132,8 +133,12 @@ fun AppNavigation() {
                     onBack = { nav.popBackStack() },
                     onManageGames = { nav.navigate(R.ADMIN_GAMES) },
                     onManageCategories = { nav.navigate(R.ADMIN_CATEGORIES) },
-                    onManageUsers = { nav.navigate(R.ADMIN_USERS) }
+                    onManageUsers = { nav.navigate(R.ADMIN_USERS) },
+                    onManageDeposits = { nav.navigate(R.ADMIN_DEPOSITS) }
                 )
+            }
+            composable(R.ADMIN_DEPOSITS) {
+                com.gamestore.ui.screen.admin.AdminDepositScreen(onBack = { nav.popBackStack() })
             }
             composable(R.ADMIN_CATEGORIES) {
                 com.gamestore.ui.screen.admin.AdminCategoryScreen(onBack = { nav.popBackStack() })

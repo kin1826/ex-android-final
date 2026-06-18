@@ -88,6 +88,38 @@ data class DepositRequest(
     val amount: Double
 )
 
+data class DepositResponse(
+    val id: Int,
+    val amount: Double,
+    val memo: String,
+    val status: String,
+    @SerializedName("bank_info") val bankInfo: BankInfo
+)
+
+data class BankInfo(
+    val account_name: String,
+    val account_number: String,
+    val bank_name: String
+)
+
+data class DepositDto(
+    val id: Int = 0,
+    @SerializedName("user_id") val userId: Int = 0,
+    val amount: Double = 0.0,
+    val memo: String = "",
+    val status: String = "",
+    @SerializedName("created_at") val createdAt: String = "",
+    @SerializedName("display_name") val userName: String? = null,
+    @SerializedName("email") val userEmail: String? = null
+)
+
+data class AdminDepositActionRequest(
+    val adminId: Int,
+    val depositId: Int,
+    val action: String, // approve, reject
+    val adminNote: String? = null
+)
+
 data class OrderItemReq(val gameId: Int, val quantity: Int)
 
 data class OrderDto(
@@ -193,4 +225,18 @@ data class WishlistToggleRequest(
 
 data class WishlistToggleResponse(
     val isFavorite: Boolean
+)
+
+data class NotificationDto(
+    val id: Int,
+    @SerializedName("user_id") val userId: Int,
+    val title: String,
+    val message: String,
+    @SerializedName("is_read") val isRead: Boolean,
+    @SerializedName("created_at") val createdAt: String
+)
+
+data class MarkReadRequest(
+    val userId: Int,
+    @SerializedName("notificationId") val notificationId: Int = 0
 )

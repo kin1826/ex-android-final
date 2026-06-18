@@ -14,6 +14,8 @@ SELECT * FROM users;
 SELECT * FROM categories;
 SELECT * FROM games;
 SELECT * FROM wishlists;
+SELECT * FROM notifications;
+SELECT * FROM deposits;
 -- Nếu có game mua từ trước thì bỏ Note đoạn này và chạy để Sync Game
 -- INSERT IGNORE INTO libraries (user_id, game_id, purchase_date)
 -- SELECT o.user_id, oi.game_id, o.created_at
@@ -353,3 +355,26 @@ ALTER TABLE games ADD COLUMN release_date VARCHAR(50) AFTER publisher;
 ALTER TABLE games ADD COLUMN platforms VARCHAR(255) AFTER release_date;
 ALTER TABLE games ADD COLUMN download_size VARCHAR(50) AFTER platforms;
 ALTER TABLE users ADD COLUMN is_active TINYINT(1) DEFAULT 1 AFTER is_admin;
+
+CREATE TABLE `deposits` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `memo` varchar(50) NOT NULL, -- Nội dung chuyển khoản duy nhất (ví dụ: GS12345)
+  `status` varchar(20) DEFAULT 'PENDING', -- PENDING, APPROVED, REJECTED
+  `admin_note` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_memo` (`memo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `notifications` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) DEFAULT 0,
+  `title` varchar(255) NOT NULL,
+  `message` text NOT NULL,
+  `is_read` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
