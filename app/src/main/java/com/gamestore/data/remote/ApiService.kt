@@ -5,7 +5,6 @@ import retrofit2.http.*
 
 interface GameApi {
 
-    // featured, hot-deals, new-releases đều trả về PagedData (có items bên trong)
     @GET("games.php")
     suspend fun getFeatured(
         @Query("action") action: String = "featured",
@@ -28,9 +27,11 @@ interface GameApi {
     suspend fun getGames(
         @Query("genre")    genre: String?  = null,
         @Query("search")   search: String? = null,
+        @Query("platform") platform: String? = null,
         @Query("minPrice") minPrice: Double? = null,
         @Query("maxPrice") maxPrice: Double? = null,
         @Query("sortBy")   sortBy: String?   = null,
+        @Query("onlyDiscounted") onlyDiscounted: Boolean? = null,
         @Query("page")     page: Int       = 0,
         @Query("pageSize") size: Int       = 20,
     ): Response<ApiResponse<PagedData<GameDto>>>
@@ -91,7 +92,6 @@ interface OrderApi {
 }
 
 interface LibraryApi {
-
     @GET("libraries.php")
     suspend fun getLibrary(
         @Query("user_id") userId: Int
