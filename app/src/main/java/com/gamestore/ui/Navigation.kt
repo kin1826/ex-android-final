@@ -23,6 +23,7 @@ import com.gamestore.ui.theme.*
 
 
 object R {
+    const val SPLASH  = "splash"
     const val HOME    = "home"
     const val DETAIL  = "detail/{gameId}"
     const val CART    = "cart"
@@ -88,9 +89,16 @@ fun AppNavigation() {
     ) { padding ->
         NavHost(
             navController = nav,
-            startDestination = R.HOME,
+            startDestination = R.SPLASH,
             modifier = Modifier.padding(bottom = padding.calculateBottomPadding())
         ) {
+            composable(R.SPLASH) {
+                com.gamestore.ui.screen.SplashScreen(onNext = {
+                    nav.navigate(R.HOME) {
+                        popUpTo(R.SPLASH) { inclusive = true }
+                    }
+                })
+            }
             composable(R.HOME) {
                 HomeScreen(onGameClick = { nav.navigate(R.detail(it)) }, onCartClick = { nav.navigate(R.CART) })
             }
