@@ -203,46 +203,53 @@ fun HistoryItem(item: DepositDto) {
 
 @Composable
 fun DepositInfoView(data: DepositResponse, onCopy: (String) -> Unit) {
-    val qrUrl = "https://img.vietqr.io/image/${data.bankInfo.bank_name}-${data.bankInfo.account_number}-compact.png?amount=${data.amount.toInt()}&addInfo=${data.memo}&accountName=${data.bankInfo.account_name}"
+    // Định dạng: https://img.vietqr.io/image/{BANK}-{ACCOUNT}-{TEMPLATE}.png?amount={AMOUNT}&addInfo={CONTENT}
+    val qrUrl = "https://img.vietqr.io/image/${data.bankInfo.bank_name}-${data.bankInfo.account_number}-compact2.png?amount=${data.amount.toInt()}&addInfo=${data.memo}"
     
     Column(
         Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Quét mã để chuyển khoản", fontWeight = FontWeight.Bold, color = TextPri)
+        Text("QUÉT MÃ ĐỂ THANH TOÁN", fontWeight = FontWeight.ExtraBold, color = TextPri, fontSize = 18.sp)
         
-        Card(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, PurpleLt)) {
+        Card(
+            shape = RoundedCornerShape(16.dp), 
+            border = BorderStroke(2.dp, PurpleLt),
+            elevation = CardDefaults.cardElevation(8.dp)
+        ) {
             AsyncImage(
                 model = qrUrl,
-                contentDescription = "QR Code",
-                modifier = Modifier.size(250.dp).background(Color.White).padding(10.dp)
+                contentDescription = "VietQR",
+                modifier = Modifier.size(280.dp).background(Color.White).padding(12.dp)
             )
         }
         
-        InfoRow("Chủ tài khoản", data.bankInfo.account_name)
-        InfoRow("Số tài khoản", data.bankInfo.account_number, onCopy)
-        InfoRow("Ngân hàng", data.bankInfo.bank_name)
-        InfoRow("Số tiền", data.amount.toVND())
+        Text("Chủ TK: ${data.bankInfo.account_name}", fontWeight = FontWeight.Bold, color = TextPri)
         
         Card(
             colors = CardDefaults.cardColors(containerColor = Purple.copy(0.1f)),
-            border = BorderStroke(1.dp, PurpleLt)
+            border = BorderStroke(1.dp, PurpleLt),
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("NỘI DUNG CHUYỂN KHOẢN", fontSize = 11.sp, color = PurpleLt, fontWeight = FontWeight.Bold)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(data.memo, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextPri)
+                    Text(data.memo, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = TextPri)
                     IconButton(onClick = { onCopy(data.memo) }) {
-                        Icon(Icons.Default.ContentCopy, null, tint = PurpleLt, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.ContentCopy, null, tint = PurpleLt)
                     }
                 }
-                Text("Vui lòng nhập đúng nội dung để được duyệt nhanh", fontSize = 11.sp, color = TextMuted)
             }
         }
-        
-        Text("Sau khi chuyển khoản, Admin sẽ kiểm tra và cộng tiền trong vòng 5-10 phút.", 
-            fontSize = 12.sp, color = TextMuted, textAlign = TextAlign.Center)
+
+        Button(
+            onClick = { /* User has transferred */ },
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = GreenColor)
+        ) {
+            Text("Tôi đã chuyển khoản thành công", fontWeight = FontWeight.Bold)
+        }
     }
 }
 
