@@ -61,9 +61,9 @@ if ($method === 'POST' && !isset($body['action'])) {
                 'memo' => $memo,
                 'status' => 'PENDING',
                 'bank_info' => [
-                    'account_name' => 'NGUYEN VAN ADMIN',
-                    'account_number' => '123456789',
-                    'bank_name' => 'MB Bank'
+                    'account_name' => 'TRAN VAN BANG',
+                    'account_number' => '0334082946',
+                    'bank_name' => 'MB'
                 ]
             ]
         ]);
